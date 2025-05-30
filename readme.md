@@ -14,7 +14,7 @@ for *Wizardry: The Five Ordeals (Steam)* explorers.
 - English/Japanese toggle (🌐)
 - Read-only memory scan (safe, non-intrusive)
   
-![Wiz Codex: Mapbook UI](./screenshot_ui.png)
+![Wiz Codex: Mapbook UI](./screenshot_main_ui.png)
 
 *Main UI showing position, direction, floor, and map capture options.*
 
