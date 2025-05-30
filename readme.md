@@ -1,7 +1,5 @@
 # Wiz Codex: Mapbook
-![Wiz Codex: Mapbook UI](./screenshot_ui.png)
 
-*Main UI showing position, direction, floor, and map capture options.*
 
 🧭 A lightweight companion tool to automatically capture and organize dungeon maps  
 for *Wizardry: The Five Ordeals (Steam)* explorers.
@@ -15,7 +13,11 @@ for *Wizardry: The Five Ordeals (Steam)* explorers.
 - Scenario-based map folders
 - English/Japanese toggle (🌐)
 - Read-only memory scan (safe, non-intrusive)
-- 
+  
+![Wiz Codex: Mapbook UI](./screenshot_ui.png)
+
+*Main UI showing position, direction, floor, and map capture options.*
+
 ![Wiz game screen with overlay](./screenshot_overlay.png)
 
 *Minimap overlaying the game screen (drag to move, always on top).*
