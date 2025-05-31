@@ -21,6 +21,7 @@ for *Wizardry: The Five Ordeals (Steam)* explorers.
 ![Wiz game screen with overlay](./screenshot_overlay.png)
 
 *Minimap overlaying the game screen (drag to move, always on top).*
+
 ---
 
 ## 🚀 Quick Start
@@ -91,7 +92,11 @@ It supports scenario folders, a floating minimap overlay, and both English/Japan
 - **Will there be updates or new features?**  
   Maybe. No promises.
 - **What are the dependencies?**  
-  See `import` statements in the source code or `requirements.txt` (coming soon).
+  pymem
+  pyautogui
+  Pillow
+  pywin32
+
 - **Is there an EXE version?**  
   Yes, see the Releases section.
 - **Can I change the theme or icon?**  
@@ -171,7 +176,11 @@ If this map refuses to cooperate, even magic might not help.
 - **今後のアップデート予定は？**  
   未定です。
 - **依存モジュールは？**  
-  `requirements.txt` に記載予定です（またはコード内 import を参照）。
+  pymem
+  pyautogui
+  Pillow
+  pywin32
+
 - **EXE版はある？**  
   Releases ページで配布予定です。
 - **見た目やアイコンの変更は？**  
