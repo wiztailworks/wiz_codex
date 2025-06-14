@@ -1595,26 +1595,21 @@ class MapApp:
         DIR構造体から現在の位置情報を取得し、マップUIに反映する。
         - 赤ポチ（三角）の位置と向き
         - X/Y座標と方向ラベル
-        - 現在のフロア表示
+        - 現在のフロア表示（floor変更時のみスイッチ実行）
         """
-
-        #print("[🐾] tick_map_overlay 発動")  # ← ループがちゃんと動いてるか確認
-
         try:
             if not self.dir_struct:
-                #print("[⚠️] dir_struct が None なので floor_label に「読み取り中ラベル」だけ表示して終了")
                 self.floor_label.config(text=get_ui_lang("floor_label_loading"))
                 self.canvas.after(100, self.tick_map_overlay)
                 return
-           
+
             # --- 情報取得 ---
             x = self.dir_struct.read_x()
             y = self.dir_struct.read_y()
             direction = self.dir_struct.read_dir()
             floor = self.dir_struct.read_floor()
 
-            #print(f"[📡] 取得: x={x}, y={y}, dir={direction}, floor={floor}")
-
+            # --- 赤ポチ描画 ---
             if x is not None and y is not None and direction is not None:
                 cell_width = self.profile.cell_size
                 cell_height = self.profile.cell_size
@@ -1636,24 +1631,25 @@ class MapApp:
                     points = [cx - size, cy - size, cx + size, cy - size, cx, cy + size]
 
                 self.canvas.coords(self.marker, *points)
-                #print(f"[🔺] 赤ポチ描画: {points}")
 
                 dir_names = get_ui_lang("dir_names")
                 dir_text = dir_names[direction] if 0 <= direction < len(dir_names) else f"? ({direction})"
                 self.label_dir_xy.config(text=get_ui_lang("label_dir_xy").format(dir=dir_text, x=x, y=y))
 
-            if floor is not None:
+            # --- フロア変更チェック ---
+            if floor is not None and floor != getattr(self, "last_tick_floor", None):
+                self.switch_floor(floor)
                 if floor == 0:
                     self.floor_label.config(text=get_ui_lang("floor_label_outside"))
                 else:
                     self.floor_label.config(text=get_ui_lang("floor_label_fmt").format(floor=floor))
-
-                
+                self.last_tick_floor = floor
 
         except Exception as e:
             print(f"[💥] tick_map_overlay エラー: {e}")
 
         self.canvas.after(100, self.tick_map_overlay)
+
 
 
     def capture_map_screenshot(self):
