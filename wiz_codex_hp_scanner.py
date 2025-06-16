@@ -268,11 +268,18 @@ def launch_hp_scan_gui():
             ent.delete(0, tk.END)
             ent.insert(0, str(v))
 
+
     # --- ウィンドウ ---
     root = tk.Tk()
     root.title("Wiz Codex: Lifebook")
+    
+    # --- 「常に最前面」チェックの状態を保持 ---
+    topmost_var = tk.IntVar(value=0)
+    def toggle_topmost():
+        # 1 なら最前面、0 なら通常
+        root.attributes('-topmost', bool(topmost_var.get()))
 
-    tk.Label(root, text="現在HPを 6 人分入力（空きは 0）").pack(pady=6)
+    tk.Label(root, text="戦闘中に現在HPを入力（空きは 0）").pack(pady=6)
 
     frame, entries = tk.Frame(root), []
     frame.pack()
@@ -285,8 +292,10 @@ def launch_hp_scan_gui():
 
     btn_frame = tk.Frame(root)
     btn_frame.pack(pady=10)
+
     tk.Button(btn_frame, text="🗘 前回値を読み込み", command=on_load_prev).grid(row=0, column=0, padx=5)
-    tk.Button(btn_frame, text="🔒 スキャン開始",      command=on_lock     ).grid(row=0, column=1, padx=5)
+    tk.Button(btn_frame, text="🔒 スキャン開始（戦闘中）", command=on_lock).grid(row=0, column=1, padx=5)
+    tk.Checkbutton(btn_frame, text="常に最前面", variable=topmost_var, command=toggle_topmost).grid(row=0, column=2, padx=5)
 
     # --- 敵 HP 表示 ---
     enemy_frame = tk.Frame(root, relief="groove", bd=2)
@@ -301,6 +310,7 @@ def launch_hp_scan_gui():
             lbl = tk.Label(enemy_frame, textvariable=var, font=("Consolas", 9))
             lbl.pack(anchor="w", padx=10)
             enemy_labels.append((g, var))
+
 
     # --- HP モニタリング ---
     # --- 初期化された pm を保持するための辞書
