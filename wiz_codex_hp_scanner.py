@@ -161,7 +161,7 @@ def attach_to_wizardry():
 
 
 def run_hp_scan(cur_vals):
-    pm = attach_to_wizardry
+    pm = attach_to_wizardry()
 
     print("📚 有効メモリ領域を列挙中...")
     regions = get_valid_regions(pm)
@@ -242,9 +242,72 @@ def load_struct_base():
         print(f"📡 敵HP構造体アドレス読込成功 → 0x{addr:X}")
         return addr
 
+# ──────────────────────────────
+# 味方 HP 読み取り
+def read_party_hp(pm, struct_base):
+    """
+    Return: List[Tuple[cur_hp, max_hp]]  length = 6
+    誤認防止のため “fetch_party_hp” に名称変更
+    """
+    cur = [pm.read_int(struct_base + OFFSET_CUR  + i*4) for i in range(6)]
+    max_ = [pm.read_int(struct_base + OFFSET_MAX + i*4) for i in range(6)]
+    return list(zip(cur, max_))
+
+def update_party_hp_view(pm, struct_base, widgets):
+    """
+    widgets: List[Tuple[Canvas, Label]]  ← create_hp_bar_frame() が返すもの
+    毎 tick 呼び出してバーを再描画する
+    """
+    ally_hp = read_party_hp(pm, struct_base)
+
+    for (cur, maxhp), (cv, lbl) in zip(ally_hp, widgets):
+        cv.delete("all")
+
+        if maxhp == 0:                     # 空スロット
+            lbl.config(text="-- / --")
+            continue
+
+        percent  = cur / maxhp if maxhp else 0
+        bar_len  = int(percent * cv.winfo_width())
+        if cur == 0:                       # 死亡
+            color = 'gray50'
+        elif percent > .5:
+            color = 'lime'
+        elif percent > .25:
+            color = 'orange'
+        else:
+            color = 'red'
+
+        cv.create_rectangle(0, 0, bar_len, 10, fill=color, width=0)
+        lbl.config(text=f"{cur} / {maxhp}")
 
 # ──────────────────────────────
 # GUI
+def create_hp_bar_frame(root):
+    """
+    味方6人分のHPバーとラベルを生成して返す
+    Return: Frame, List[Tuple[Canvas, Label]]
+    """
+    frame = tk.Frame(root, relief="groove", bd=2)
+    tk.Label(frame, text="Party HP (auto-refresh)").pack(anchor="w")
+
+    widgets = []
+    for i in range(6):
+        row = tk.Frame(frame)
+        row.pack(anchor="w", padx=5, pady=1)
+
+        label = tk.Label(row, text="-- / --", width=10)
+        label.pack(side="left")
+
+        canvas = tk.Canvas(row, width=120, height=10)
+        canvas.pack(side="left", padx=5)
+
+        widgets.append((canvas, label))
+
+    return frame, widgets
+
+
+
 def launch_hp_scan_gui():
     # --- コールバック ---
     def on_lock():
@@ -269,10 +332,33 @@ def launch_hp_scan_gui():
             ent.insert(0, str(v))
 
 
+
     # --- ウィンドウ ---
     root = tk.Tk()
     root.title("Wiz Codex: Lifebook")
-    
+
+    # 共通コンテナ（縦に並べるだけ）
+    body = tk.Frame(root)
+    body.pack()
+
+    # HPバー生成
+    party_frame, party_widgets = create_hp_bar_frame(body)
+    party_frame.grid(row=0, column=0, pady=4, sticky="w")
+
+    # 敵 HP 表示
+    enemy_frame = tk.Frame(body, relief="groove", bd=2)
+    enemy_frame.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+
+    party_hp_visible = tk.IntVar(value=1)
+
+    def toggle_party_hp_view():
+        if party_hp_visible.get():
+            party_frame.grid()          # 以前の row/col でそのまま復活
+        else:
+            party_frame.grid_remove()   # 配置情報を保持したまま非表示
+
+
+
     # --- 「常に最前面」チェックの状態を保持 ---
     topmost_var = tk.IntVar(value=0)
     def toggle_topmost():
@@ -296,6 +382,7 @@ def launch_hp_scan_gui():
     tk.Button(btn_frame, text="🗘 前回値を読み込み", command=on_load_prev).grid(row=0, column=0, padx=5)
     tk.Button(btn_frame, text="🔒 スキャン開始（戦闘中）", command=on_lock).grid(row=0, column=1, padx=5)
     tk.Checkbutton(btn_frame, text="常に最前面", variable=topmost_var, command=toggle_topmost).grid(row=0, column=2, padx=5)
+    tk.Checkbutton(btn_frame, text="味方HPバー表示", variable=party_hp_visible, command=toggle_party_hp_view).grid(row=1, column=0, columnspan=2, pady=4)
 
     # --- 敵 HP 表示 ---
     enemy_frame = tk.Frame(root, relief="groove", bd=2)
@@ -317,32 +404,32 @@ def launch_hp_scan_gui():
     pm_holder = {}
     struct_base_holder = {}  # 一度だけ読み込み、ここに保持
 
-    def poll_enemy_hp():
+    def update_hp_ui():
         try:
-            # プロセス未接続ならここで初回アタッチ
             if "pm" not in pm_holder:
                 pm_holder["pm"] = attach_to_wizardry()
-
-            pm = pm_holder["pm"]
-
-            # 構造体アドレス未ロードならここで初回ロード
             if "base" not in struct_base_holder:
                 struct_base_holder["base"] = load_struct_base()
-
+            
+            pm   = pm_holder["pm"]
             base = struct_base_holder["base"]
-            hp   = read_enemy_hp(pm, base)  # 6×9 配列
 
+            # 敵 HP 更新
+            enemy_hp = read_enemy_hp(pm, base)
             for g, var in enemy_labels:
-                var.set(f"G{g}: " + " ".join(f"{v:4}" for v in hp[g]))
+                var.set(f"G{g}: " + " ".join(f"{v:4}" for v in enemy_hp[g]))
+
+            # 味方 HP 更新
+            update_party_hp_view(pm, base, party_widgets)
 
         except Exception:
-            # 戦闘外 or プロセス切断時 → 次tickで再試行
             pm_holder.pop("pm", None)
-            struct_base_holder.pop("base", None)  # 構造体アドレスも無効化
+            struct_base_holder.pop("base", None)
 
-        root.after(TICK_MS, poll_enemy_hp)
+        root.after(TICK_MS, update_hp_ui)
 
-    poll_enemy_hp()
+
+    update_hp_ui()
     root.mainloop()
 
 # ──────────────────────────────
