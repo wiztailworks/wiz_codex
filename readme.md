@@ -1,3 +1,11 @@
+# Wiz Codex: Lifebook
+
+❤️ Battle companion tool for *Wizardry: The Five Ordeals (Steam)*.  
+Enter party HP during combat to lock → enemy HP becomes visible.  
+Displays party HP with optional life bars, plus Always-on-Top mode.
+
+---
+
 # Wiz Codex: Mapbook
 
 
@@ -195,3 +203,4 @@ If this map refuses to cooperate, even magic might not help.
 
 このツールは [MITライセンス](LICENSE) に基づき公開されています。  
 自由に使って、改造して、冒険に役立ててください。
+
