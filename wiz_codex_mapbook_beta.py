@@ -902,12 +902,25 @@ def get_process_handle(title):
     if hwnd == 0:
         raise Exception("ウィンドウが見つかりません")
     _, pid = win32process.GetWindowThreadProcessId(hwnd)
+
     PROCESS_VM_READ = 0x10
     PROCESS_QUERY_INFORMATION = 0x400
-    handle = ctypes.windll.kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, False, pid)
-    if not handle:
+    access = PROCESS_VM_READ | PROCESS_QUERY_INFORMATION
+
+    # ✅ ctypes default restype can truncate on 64-bit; define signature explicitly.
+    k32 = ctypes.windll.kernel32
+    try:
+        k32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+        k32.OpenProcess.restype = ctypes.c_void_p
+    except Exception:
+        pass
+
+    handle = k32.OpenProcess(access, False, pid)
+    if not handle or int(handle) == 0:
         raise Exception("プロセスのオープンに失敗しました")
-    return handle
+
+    # Return as int for downstream read_int / CloseHandle usage.
+    return int(handle)
 
 
 def get_window_resolution():
@@ -1503,15 +1516,70 @@ class MapApp:
     
     # --- プロセスハンドル解放（リーク防止） ---
     def _close_process_handle(self):
-        h = getattr(self, "handle", None)
-        if not h:
-            return
+        """Close the current process HANDLE safely (idempotent, thread-safe-ish).
+
+        - Prevents double-close by detaching self.handle before calling CloseHandle.
+        - Treats 0 / None / INVALID_HANDLE_VALUE as no-op.
+        - Swallows Win32 errors (closing an already-dead process is not fatal for this app).
+        """
+        # Lazily create a lock so multiple threads don't race CloseHandle.
         try:
-            ctypes.windll.kernel32.CloseHandle(h)
-        except Exception as e:
-            print(f"⚠️ CloseHandle失敗: {e}")
-        finally:
-            self.handle = None
+            lock = getattr(self, "_handle_lock", None)
+            if lock is None:
+                import threading
+                lock = threading.Lock()
+                setattr(self, "_handle_lock", lock)
+        except Exception:
+            lock = None
+
+        def _is_valid_handle(h) -> bool:
+            try:
+                # ctypes handle types can be c_void_p / int-like
+                hv = int(h)
+            except Exception:
+                return False
+            if hv == 0:
+                return False
+            # INVALID_HANDLE_VALUE == (HANDLE)(-1)
+            if hv == -1 or hv == 0xFFFFFFFFFFFFFFFF:
+                return False
+            return True
+
+        def _close(h):
+            try:
+                import ctypes
+                k32 = ctypes.windll.kernel32
+                # Set signature once (safe even if repeated)
+                try:
+                    k32.CloseHandle.argtypes = [ctypes.c_void_p]
+                    k32.CloseHandle.restype = ctypes.c_bool
+                except Exception:
+                    pass
+                ok = k32.CloseHandle(ctypes.c_void_p(int(h)))
+                if not ok:
+                    # Don't raise—best effort. You can enable verbose logging if needed.
+                    pass
+            except Exception as e:
+                print(f"⚠️ CloseHandle failed (ignored): {e}")
+
+        if lock is None:
+            # Fallback: best-effort without lock
+            h = getattr(self, "handle", None)
+            if not _is_valid_handle(h):
+                self.handle = None
+                return
+            self.handle = None  # detach first to avoid double-close
+            _close(h)
+            return
+
+        with lock:
+            h = getattr(self, "handle", None)
+            if not _is_valid_handle(h):
+                self.handle = None
+                return
+            self.handle = None  # detach first to avoid double-close
+        # Close outside the lock (CloseHandle is fast, but keep lock held minimal)
+        _close(h)
 
     # --- ウィンドウ終了処理（スレッド停止 + ハンドル解放） ---
     def on_close(self):
