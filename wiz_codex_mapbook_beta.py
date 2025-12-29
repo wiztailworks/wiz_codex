@@ -775,24 +775,17 @@ LANG_DICT = {
 }
 
 
-def load_lang():
-    """言語設定を settings.json から読む（無ければ 'en'）。"""
+def get_lang_from_settings(default="en"):
+    """settings.json から言語を取得。無ければ default。"""
     s = load_app_settings()
-    if isinstance(s, dict) and str(s.get("lang", "")).strip():
-        return str(s.get("lang")).strip()
-    return "en"
+    if isinstance(s, dict):
+        v = str(s.get("lang", "")).strip()
+        if v:
+            return v
+    return default
 
-CURRENT_LANG = load_lang()
-
-def save_lang():
-    # settings.json
-    s = load_app_settings()
-    s["lang"] = CURRENT_LANG
-    save_app_settings(s)
-
-
-
-
+# グローバル言語（UI切替の即時反映のため既存構造を維持）
+CURRENT_LANG = get_lang_from_settings("en")
 
 def get_ui_lang(key, **kwargs):
     """
@@ -1486,10 +1479,13 @@ class MapApp:
     def toggle_language(self):
         global CURRENT_LANG
         CURRENT_LANG = "ja" if CURRENT_LANG == "en" else "en"
-        save_lang() 
+        # 言語の永続化は settings.json（_flush_save_settings）に一本化
+        try:
+            self._schedule_save_settings()
+        except Exception:
+            pass
         self.btn_lang_toggle.config(text=f"🌐 : {CURRENT_LANG.upper()}")
         self.refresh_ui_language()
-    
 
     def refresh_ui_language(self):
         self.btn_capture.config(text=get_ui_lang("btn_capture"))
@@ -1581,13 +1577,9 @@ class MapApp:
     def on_select_scenario(self, event=None):
         name = self.combo_scenario.get()
         self.selected_scenario = name
-        # 選択状態を永続化（settings.json）
-        try:
-            s = load_app_settings();
-            s["last_scenario"] = name
-            save_app_settings(s)
-        except Exception:
-            pass
+        # 選択状態は settings.json（_flush_save_settings）で保存
+        self._schedule_save_settings()
+
         self.reload_map_image()
         self.update_window_title()
 
@@ -2124,96 +2116,9 @@ class MapApp:
 
 
 
-########敵HP調査関連#########
-
-# メモリ走査関連定義
-PAGE_READWRITE = 0x04 # ページ保護属性：PAGE_READWRITE（WinAPI定数）
-MEM_REGION_ALIGN = 0x1000  # メモリページ境界（通常4KB）
-
-class MEMORY_BASIC_INFORMATION(ctypes.Structure):
-    _fields_ = [
-        ("BaseAddress", ctypes.c_void_p),
-        ("AllocationBase", ctypes.c_void_p),
-        ("AllocationProtect", ctypes.c_ulong),
-        ("RegionSize", ctypes.c_size_t),
-        ("State", ctypes.c_ulong),
-        ("Protect", ctypes.c_ulong),
-        ("Type", ctypes.c_ulong),
-    ]
-
-# --- MEM_COMMIT | PAGE_READWRITE 領域の列挙 ---
-def get_valid_regions(pm):
-    """
-    対象プロセス内の MEM_COMMIT | PAGE_READWRITE 領域を列挙
-    戻り値: [(base_address, region_size), ...]
-    """
-    regions = []
-    address = 0x0
-    mem_info = MEMORY_BASIC_INFORMATION()
-    mbi_size = ctypes.sizeof(mem_info)
-
-    while address < 0x7FFFFFFFFFFF:
-        result = ctypes.windll.kernel32.VirtualQueryEx(
-            pm.process_handle,
-            ctypes.c_void_p(address),
-            ctypes.byref(mem_info),
-            mbi_size
-        )
-        if not result:
-            address += 0x1000  # MEM_REGION_ALIGN（ページ境界）にスキップ
-            continue
-
-        base_address = mem_info.BaseAddress
-        region_size = mem_info.RegionSize
-
-        if base_address and region_size > 0:
-            addr_val = int(base_address)
-
-            if mem_info.State == 0x1000 and mem_info.Protect == 0x04:  # MEM_COMMIT, PAGE_READWRITE
-                regions.append((addr_val, region_size))
-
-            address = addr_val + region_size
-        else:
-            address += 0x1000
-
-    return regions
 
 
-def scan_enemy_hp_addr(memdump: dict):
-    """
-    サンドイッチスキャン：
-    味方の現在HP + 最大HP の一致に基づいて敵HP構造体を検出する。
-    memdump: {addr: bytes} 構造体ベースアドレス → 構造体bytes（最低0x198バイト必要）
-    """
-    ally_cur_hp_list = [23, 0, 10, 89, 0, 56]
-    ally_max_hp_list = [45, 10, 100, 89, 30, 56]
 
-    matched_addrs = []
-
-    for base, blob in memdump.items():
-        if len(blob) < 0x198:
-            continue  # 十分なサイズでないblobは除外
-
-        try:
-            cur_hp = [int.from_bytes(blob[0x000 + i*4 : 0x000 + (i+1)*4], 'little') for i in range(6)]
-            max_hp = [int.from_bytes(blob[0x180 + i*4 : 0x180 + (i+1)*4], 'little') for i in range(6)]
-
-            if cur_hp == ally_cur_hp_list and max_hp == ally_max_hp_list:
-                enemy_hp = int.from_bytes(blob[0x030:0x034], 'little')
-                print(f"[HIT] addr={hex(base)}  enemy_hp={enemy_hp}")
-                matched_addrs.append(base)
-
-        except Exception as e:
-            print(f"[WARN] blob parse error at {hex(base)}: {e}")
-            continue
-
-    print("=== サンドイッチスキャン完了 ===")
-    return matched_addrs
-
-
-########敵HP調査関連#########
-
-# --- メイン実行部（GUI起動の軸） ---
 if __name__ == "__main__":
     try:
         # ゲームのプロセスハンドルを取得
