@@ -1,6 +1,6 @@
 # === 🧰 標準ライブラリ ===
-import csv
 import os
+import json
 import struct
 import threading
 import time
@@ -24,9 +24,9 @@ from tkinter import messagebox, ttk
 from typing import List
 
 # ================================
-# 📦 DIRスキャナ機能：内包版
+# 📦 menu_state候補スキャナ機能：内包版
 # ================================
-def run_dir_scan():
+def run_menu_state_scan():
     """
     dir_scanner.py の機能を内包関数として再構築。
     外部実行せずに直接呼び出す方式。
@@ -47,7 +47,7 @@ def run_dir_scan():
     MENU_IDLE_STATE = 0xC8  # menu_state フィールド値（ダンジョン内アイドル中）
     MENU_IDLE_CURSOR = 0x00  # menu_cursor フィールド値（非選択 or 最上部選択中）
 
-    # --- 構造体オフセット定義（DIR構造体中の相対位置） ---
+    # --- 構造体オフセット定義（menu_state候補中の相対位置） ---
     OFFSET_STATE = 0x00     # menu_state の位置
     OFFSET_CURSOR = 0x04    # menu_cursor の位置
     OFFSET_DIR = 0x4C       # dir_val の位置（方向値: 0〜3）
@@ -92,36 +92,43 @@ def run_dir_scan():
             return None
 
 
-    def load_menu_tail_hex_from_csv(filename="locked_dir_val_addr.csv"):
+    
+    def load_menu_tail_hex_hint():
         """
-        CSVからmenu_tail_hexの値を読み取って返す（バリデーション付き）。
-        - 成功: 例 "ECC"（3桁の16進大文字文字列）
-        - 失敗: None
-        """
+        menu_state_addr 由来の tail_hex ヒントを返す。
 
+        いまは settings.json は使わず、settings.json に保存された
+        「menu_state_addr（=構造体ベース）」の下位3桁を高速化フィルタとして使う。
+
+        Returns:
+            str | None : 例 "ECC"（3桁の16進大文字） / 失敗は None
+        """
         try:
-            # 🔧 実行フォルダ（os.getcwd()）から読み取るように修正
-            path = os.path.join(os.getcwd(), filename)
+            s = load_app_settings()
+            if not isinstance(s, dict):
+                return None
 
-            with open(path, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    raw_val = row.get("menu_tail_hex", "").strip().upper()
-                    if len(raw_val) == 3:
-                        try:
-                            val_int = int(raw_val, 16)
-                            if 0 <= val_int <= 0xFFF:
-                                return raw_val
-                            else:
-                                print(f"⚠️ menu_tail_hex の数値が範囲外です: {raw_val}")
-                        except ValueError:
-                            print(f"⚠️ menu_tail_hex に無効な文字があります: {raw_val}")
-                    else:
-                        print(f"⚠️ menu_tail_hex の長さが不正です: '{raw_val}'")
+            # 優先: menu_state_addr
+            v = s.get("menu_state_addr")
+            if v is None:
+                # 互換: 旧キー menu_struct_addr が残っていたら拾う
+                v = s.get("menu_struct_addr")
+
+            if v is None:
+                return None
+
+            if isinstance(v, int):
+                addr = v
+            else:
+                # "0x..." / "..." どちらも許容
+                hs = str(v).strip().lower().replace("0x", "")
+                addr = int(hs, 16)
+
+            return f"{addr & 0xFFF:03X}".upper()
         except Exception as e:
-            print(f"⚠️ CSV読み取り失敗: {e}")
-        
-        return None
+            print(f"⚠️ settings.json から tail_hex 読み取り失敗: {e}")
+            return None
+
 
 
 
@@ -286,33 +293,32 @@ def run_dir_scan():
 
 
 
+    
     def lock_and_output(menu_struct_entries):
         """
-        最終確定したDIR構造体（menu_struct）候補をCSV出力する。
-        現在の実装では1件のみを想定。複数件ある場合はログ出力して終了。
+        最終確定した構造体ベースアドレス（= menu_state_addr）を settings.json に保存する。
+        - tail_hex は「前回確定した menu_state_addr 下位3桁」を高速化フィルタとして使う。
+        - ここでは 1件のみを想定（複数件なら候補を表示して終了）。
         """
-
         if len(menu_struct_entries) == 1:
             addr, _, _ = menu_struct_entries[0]
-            menu_state_addr = addr + OFFSET_STATE      # +0x00
-            dir_val_addr = addr + OFFSET_DIR           # +0x4C
-            menu_tail_hex = f"{menu_state_addr & 0xFFF:03X}"  # 下位3桁を抽出
+            menu_state_addr = addr + OFFSET_STATE  # +0x00（構造体ベース）
+            tail_hex = f"{menu_state_addr & 0xFFF:03X}"
 
-            print(f"🎯 DIR構造体のdir_valアドレスを特定: 0x{dir_val_addr:X} （MENU_STATE末尾3桁: {menu_tail_hex}）")
+            print(f"🎯 menu_state_addr を特定: 0x{menu_state_addr:X} （下位3桁: {tail_hex}）")
 
             try:
-                # ✅ グローバル関数を使ってEXEルートに保存
-                path = os.path.join(get_base_path_for_data(), "locked_dir_val_addr.csv")
-
-                with open(path, "w", encoding="utf-8") as f:
-                    f.write("menu_state_addr,dir_val_addr,menu_tail_hex\n")
-                    f.write(f"0x{menu_state_addr:X},0x{dir_val_addr:X},{menu_tail_hex}\n")
-
-                print(f"📝 CSV出力完了 → {path}")
-
+                d = load_app_settings()
+                if not isinstance(d, dict):
+                    d = {}
+                # int でも str でも OK。見やすさ優先で 0xHEX 文字列で保存。
+                d.update({
+                    "menu_state_addr": f"0x{menu_state_addr:X}",
+                })
+                save_app_settings(d)
+                print(f"📝 settings.json に保存完了 → {PATHS.settings_file()}")
             except Exception as e:
-                print(f"❌ CSV出力に失敗しました: {e}")
-
+                print(f"❌ settings.json 保存に失敗しました: {e}")
         else:
             print(f"❌ 候補が {len(menu_struct_entries)} 件。特定できません。")
             for addr, _, _ in menu_struct_entries:
@@ -320,11 +326,10 @@ def run_dir_scan():
 
 
 
-
-    def _scan_dir_struct_with_tail(pm, regions, tail_hex=None):
+    def _scan_menu_state_candidates_with_tail(pm, regions, tail_hex=None):
         """
         tail_hex（末尾フィルタ）の有無にかかわらず、
-        WIZ状態遷移→スキャン→整合フィルタ（C8/0）までを一括で行う共通関数。
+        WIZ状態遷移→スキャン→整合フィルタ（探索状態）までを一括で行う共通関数。
 
         Parameters:
             pm: pymem.Pymem オブジェクト
@@ -332,7 +337,7 @@ def run_dir_scan():
             tail_hex: "ECC" 等の下位3桁16進文字列（Noneなら全スキャン）
 
         Returns:
-            c8_offsets: [(addr, data, offset)] 形式の候補リスト
+            menu_state_candidates: [(addr, data, offset)] 形式の候補リスト
         """
 
         # === 🧭 状態操作フェーズ（D2/0B） ===
@@ -360,7 +365,7 @@ def run_dir_scan():
         )
         print(f"🎯 候補アドレス数: {len(offsets)} 件（スキャン時間: {time.time() - t0:.2f}秒）")
 
-        # === 🔁 C8状態へ遷移し整合確認 ===
+        # === 🔁 探索状態へ遷移し整合確認 ===
 
         unlock_wizardry()
         press_key("l")
@@ -375,7 +380,7 @@ def run_dir_scan():
             except Exception as e:
                 print(f"⚠️ 再読込失敗: 0x{addr:X} → {e}")
 
-        c8_offsets = filter_menu_struct_offsets(
+        menu_state_candidates = filter_menu_struct_offsets(
             refreshed_offsets,
             state_val=MENU_IDLE_STATE,
             cursor_val=MENU_IDLE_CURSOR,
@@ -383,36 +388,36 @@ def run_dir_scan():
             offset_cursor=OFFSET_CURSOR
         )
         unlock_wizardry()
-        print(f"✅ C8/0アドレス数: {len(c8_offsets)} 件")
+        print(f"✅ menu_state一致候補数: {len(menu_state_candidates)} 件")
 
-        return c8_offsets
+        return menu_state_candidates
 
 
-    def find_locked_dir_struct_candidates(pm):
+    def find_menu_state_addr_candidates(pm):
         """
-        DIR構造体候補を特定する高レベル関数。
+        menu_state候補を特定する高レベル関数。
         - まずは menu_tail_hex によるピンポイントスキャンを試み、
         - 一致0件なら tail_hex を無効化して全スキャンにフォールバック。
 
         Returns:
-            c8_offsets: [(addr, data, offset)] 一致した構造体のリスト
+            menu_state_candidates: [(addr, data, offset)] 一致した構造体のリスト
         """
 
         regions = get_valid_regions(pm, MEM_REGION_ALIGN, PAGE_READWRITE)
         print(f"📊 有効メモリ領域数: {len(regions)}")
 
-        tail_hex = load_menu_tail_hex_from_csv()
+        tail_hex = load_menu_tail_hex_hint()
         print(f"🔍 tail_hexフィルタ使用: {'あり → ' + tail_hex if tail_hex else 'なし'}")
-        c8_offsets = _scan_dir_struct_with_tail(pm, regions, tail_hex=tail_hex)
+        menu_state_candidates = _scan_menu_state_candidates_with_tail(pm, regions, tail_hex=tail_hex)
 
-        if not c8_offsets and tail_hex:
+        if not menu_state_candidates and tail_hex:
             print(f"🔁 tail_hex={tail_hex} による一致なし → フォールバックで全域スキャン実行")
-            c8_offsets = _scan_dir_struct_with_tail(pm, regions, tail_hex=None)
+            menu_state_candidates = _scan_menu_state_candidates_with_tail(pm, regions, tail_hex=None)
 
-            if not c8_offsets:
+            if not menu_state_candidates:
                 print("❌ フォールバック後も一致なし。処理を終了します。")
 
-        return c8_offsets
+        return menu_state_candidates
 
 
 
@@ -421,27 +426,26 @@ def run_dir_scan():
         if pm is None:
             return
 
-        print("🔍 DIR構造体サーチ開始…")
-        c8_offsets = find_locked_dir_struct_candidates(pm)
+        print("🔍 構造体サーチ開始…")
+        menu_state_candidates = find_menu_state_addr_candidates(pm)
 
-        if not c8_offsets:
+        if not menu_state_candidates:
             print("❌ 一致するアドレスがありませんでした。")
             return
 
-        if len(c8_offsets) == 1:
-            addr, data, i = c8_offsets[0]
-            dir_val_addr = addr + OFFSET_DIR
-            print(f"🔒 dir_val_addr: 0x{dir_val_addr:X}")
-            lock_and_output(c8_offsets)
+        if len(menu_state_candidates) == 1:
+            addr, data, i = menu_state_candidates[0]
+            print(f"🔒 menu_state_addr: 0x{addr + OFFSET_STATE:X}")
+            lock_and_output(menu_state_candidates)
         else:
             print("⚠️ 一意に決まらなかったので候補を表示:")
-            for addr, _, _ in c8_offsets:
+            for addr, _, _ in menu_state_candidates:
                 print(f"  📍 0x{addr:X}")
 
     main()
 
 # ================================
-# 📦 DIRスキャナ機能 ここまで
+# 📦 menu_state候補スキャナ機能 ここまで
 # ================================
 
 
@@ -466,46 +470,101 @@ def get_base_path_for_data():
 
 
 
+
+# === パス解決（assets / data を一本化） ===
+class PathResolver:
+    """
+    assets: 実行時に同梱される読み取り専用リソース（PyInstallerでは sys._MEIPASS）
+    data  : 設定・生成物など書き込み対象（exe本体の隣）
+    """
+    def __init__(self):
+        self.assets_root = get_base_path()
+        self.data_root = get_base_path_for_data()
+
+    # --- data ---
+    def data_path(self, *parts: str) -> str:
+        return os.path.join(self.data_root, *parts)
+
+    def settings_file(self) -> str:
+        return self.data_path("settings.json")
+
+    def scenario_root(self) -> str:
+        return self.data_path("map_images")
+
+    def scenario_dir(self, scenario_name: str) -> str:
+        return self.data_path("map_images", scenario_name)
+
+    # --- assets ---
+    def asset_path(self, *parts: str) -> str:
+        return os.path.join(self.assets_root, *parts)
+
+PATHS = PathResolver()
+
 # === 設定ファイルパス ===
-SETTINGS_FILE = os.path.join(get_base_path_for_data(), "last_scenario.txt")
-LANG_FILE = os.path.join(get_base_path_for_data(), "lang.txt")
+# settings.json に集約（lang.txt / last_scenario.txt は廃止）
+APP_SETTINGS_FILE = PATHS.settings_file()
+
+class SettingsStore:
+    """Small JSON settings store safe for EXE builds.
+    - Stores settings next to the executable (get_base_path_for_data()).
+    - Never raises on read/write failures (prints a short error instead).
+    """
+    def __init__(self, path: str):
+        self.path = path
+
+    def load(self) -> dict:
+        try:
+            if not os.path.exists(self.path):
+                return {}
+            with open(self.path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, dict) else {}
+        except Exception as e:
+            print(f"📛 settings.json 読み込み失敗: {e}")
+            return {}
+
+    def save(self, d: dict) -> None:
+        try:
+            with open(self.path, "w", encoding="utf-8") as f:
+                json.dump(d, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"📛 settings.json 保存失敗: {e}")
+
+    def update(self, **kwargs) -> dict:
+        d = self.load()
+        d.update(kwargs)
+        self.save(d)
+        return d
+
+# Backwards-compatible wrappers (keep existing call sites simple)
+_SETTINGS = SettingsStore(APP_SETTINGS_FILE)
+
+def load_app_settings():
+    return _SETTINGS.load()
+
+def save_app_settings(d: dict):
+    _SETTINGS.save(d)
 
 
 
 
-# --- 説明 ---
-# 前回選択されたシナリオ名をファイルから読み取る（存在しなければ None を返す）
-def load_last_selected_scenario():
-    try:
-        if not os.path.exists(SETTINGS_FILE):
-            return None
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            name = f.read().strip()
-            if not name:
-                return None
-            return name
-    except Exception as e:
-        print(f"📛 シナリオ設定読み込み失敗: {e}")
-        return None
 
-# --- 説明 ---
-# 現在選択されているシナリオ名を外部ファイルに保存する（次回起動時に再現できるように）
-def save_last_selected_scenario(name):
-    try:
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            f.write(name.strip())
-    except Exception as e:
-        print(f"📛 シナリオ設定保存失敗: {e}")
+# (removed) legacy scenario txt helpers; settings are managed via settings.json only.
 
 
 # --- 説明 ---
 # 現在選択されているシナリオ名に応じたマップ画像保存先のパスを返す。
 # 保存先フォルダが存在しない場合は自動作成する。
 def get_scenario_save_path(scenario_name):
-    base = os.path.join(get_base_path_for_data(), "map_images") 
+    """
+    map画像の保存先（書き込み領域）。
+    - ルート: <data>/map_images
+    - シナリオ指定時: <data>/map_images/<scenario_name>
+    """
+    base = PATHS.scenario_root()
 
     try:
-        os.makedirs(base, exist_ok=True)  # ✅ map_images フォルダ保証
+        os.makedirs(base, exist_ok=True)
     except Exception as e:
         print(f"📛 map_images フォルダ作成失敗: {e}")
         return None
@@ -513,14 +572,15 @@ def get_scenario_save_path(scenario_name):
     if not scenario_name:
         return base
 
-    folder = os.path.join(base, scenario_name)
+    folder = PATHS.scenario_dir(scenario_name)
     try:
-        os.makedirs(folder, exist_ok=True)  # ✅ シナリオ個別フォルダも保証
+        os.makedirs(folder, exist_ok=True)
     except Exception as e:
         print(f"📛 シナリオフォルダ作成失敗: {e}")
         return None
 
     return folder
+
 
 
 def prompt_select_resolution(parent_root): #定義のみで未使用
@@ -713,32 +773,17 @@ LANG_DICT = {
 }
 
 
-def load_lang():
-    try:
-        with open(LANG_FILE, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    except:
-        return "en"
+def get_lang_from_settings(default="en"):
+    """settings.json から言語を取得。無ければ default。"""
+    s = load_app_settings()
+    if isinstance(s, dict):
+        v = str(s.get("lang", "")).strip()
+        if v:
+            return v
+    return default
 
-CURRENT_LANG = load_lang()
-
-def save_lang():
-    try:
-        with open(LANG_FILE, "w", encoding="utf-8") as f:
-            f.write(CURRENT_LANG)
-    except:
-        pass
-
-def toggle_language(self):
-    global CURRENT_LANG
-    CURRENT_LANG = "ja" if CURRENT_LANG == "en" else "en"
-    save_lang()
-    self.btn_lang_toggle.config(text=f"🌐 : {CURRENT_LANG.upper()}")
-    self.refresh_ui_language()
-
-
-
-
+# グローバル言語（UI切替の即時反映のため既存構造を維持）
+CURRENT_LANG = get_lang_from_settings("en")
 
 def get_ui_lang(key, **kwargs):
     """
@@ -798,29 +843,33 @@ def show_ui_warning(title_key, message_key, parent=None, **kwargs):
 
 
 # --- 説明 ---
-# DIR構造体の基底アドレスを受け取り、各種要素のアドレスを算出・保持する
-class DirStruct:
-    OFFSET_DIR = 0x00
-    OFFSET_X = 0x04
-    OFFSET_Y = 0x08
-    OFFSET_FLOOR = 0x0C
-    OFFSET_DUNGEON_ID = 0x18
-    OFFSET_MENU_STATE = -0x4C
-    
+# menu_state候補の基底アドレスを受け取り、各種要素のアドレスを算出・保持する
+# --- 説明 ---
+# menu_struct の基底アドレス（menu_state の先頭）を受け取り、各種要素のアドレスを算出・保持する
+# ※ スキャナ / 本体で「menu_struct を 0ベース」に統一（変換不要）
+class MenuStruct:
+    OFFSET_MENU_STATE = 0x00
+    OFFSET_CURSOR = 0x04
+    OFFSET_DIR = 0x4C
+    OFFSET_X = 0x50
+    OFFSET_Y = 0x54
+    OFFSET_FLOOR = 0x58
+    OFFSET_DUNGEON_ID = 0x64  # 旧 dir_val 基準(+0x18) → menu_struct 基準(+0x4C+0x18)
 
-    def __init__(self, handle, base_addr):
+    def __init__(self, handle, base_addr: int):
         self.handle = handle
         self.base = base_addr
-        
 
-
-        # 構造体内の各要素のオフセットを加算し、個別アドレスとして保持
+        self.addr_menu_state = base_addr + self.OFFSET_MENU_STATE
+        self.addr_cursor = base_addr + self.OFFSET_CURSOR
         self.addr_dir = base_addr + self.OFFSET_DIR
         self.addr_x = base_addr + self.OFFSET_X
         self.addr_y = base_addr + self.OFFSET_Y
         self.addr_floor = base_addr + self.OFFSET_FLOOR
         self.addr_dungeon_id = base_addr + self.OFFSET_DUNGEON_ID
-        self.addr_menu_state = base_addr + self.OFFSET_MENU_STATE
+
+    def read_menu_state(self):
+        return read_int(self.handle, self.addr_menu_state)
 
     def read_dir(self):
         return read_int(self.handle, self.addr_dir)
@@ -847,19 +896,31 @@ class DirStruct:
             "dungeon_id": self.read_dungeon_id(),
         }
 
-
 # ====== メモリ読み取り ======
 def get_process_handle(title):
     hwnd = win32gui.FindWindow(None, title)
     if hwnd == 0:
         raise Exception("ウィンドウが見つかりません")
     _, pid = win32process.GetWindowThreadProcessId(hwnd)
+
     PROCESS_VM_READ = 0x10
     PROCESS_QUERY_INFORMATION = 0x400
-    handle = ctypes.windll.kernel32.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, False, pid)
-    if not handle:
+    access = PROCESS_VM_READ | PROCESS_QUERY_INFORMATION
+
+    # ✅ ctypes default restype can truncate on 64-bit; define signature explicitly.
+    k32 = ctypes.windll.kernel32
+    try:
+        k32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+        k32.OpenProcess.restype = ctypes.c_void_p
+    except Exception:
+        pass
+
+    handle = k32.OpenProcess(access, False, pid)
+    if not handle or int(handle) == 0:
         raise Exception("プロセスのオープンに失敗しました")
-    return handle
+
+    # Return as int for downstream read_int / CloseHandle usage.
+    return int(handle)
 
 
 def get_window_resolution():
@@ -916,29 +977,38 @@ def read_int(handle, address):
     return struct.unpack("i", buffer.raw)[0]
 
 
-# --- 説明 ---
-# locked_dir_val_addr.csv から dir_val_addr を読み取り、16進数として整数変換して返す
-def load_auto_dir_address():
-    import os, csv
+def load_auto_menu_state_address():
+    """
+    settings.json から menu_state_addr（=構造体ベース）を読み取り、int(16進)で返す。
 
+    返り値:
+        int | None
+    """
     try:
-        path = os.path.join(get_base_path_for_data(), "locked_dir_val_addr.csv")
-        if not os.path.exists(path):
-            return None  # ファイルが存在しない場合は None を返す（初回起動想定）
+        d = load_app_settings()
+        if not isinstance(d, dict):
+            return None
 
-        with open(path, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if "dir_val_addr" in row and row["dir_val_addr"]:
-                    hex_str = row["dir_val_addr"].strip().lower().replace("0x", "")
-                    return int(hex_str, 16)
-                break  # 最初の有効な行だけ処理する
+        v = d.get("menu_state_addr")
+        if v is None:
+            # 互換: 旧キーが残っていたら拾う（今後は menu_state_addr に統一）
+            v = d.get("menu_struct_addr")
 
+        if v is None:
+            return None
+
+        if isinstance(v, int):
+            return v
+
+        hex_str = str(v).strip().lower().replace("0x", "")
+        return int(hex_str, 16)
     except Exception as e:
-        print(f"📛 自動DIRアドレス読み込み失敗: {e}")
+        print(f"📛 自動menu_state_addr読み込み失敗: {e}")
         return None
 
-
+def load_auto_menu_struct_address():
+    """互換用エイリアス（旧名）"""
+    return load_auto_menu_state_address()
 
 
 # --- 説明 ---
@@ -1175,13 +1245,18 @@ CURRENT_THEME = apply_theme_codex_dark # ✅ 初期テーマをここで指定
 class MapApp:
 
 
-    def __init__(self, root, handle, addr_dir):
+    def __init__(self, root, handle, addr_menu_state):
         self.root = root  # GUIの司令塔。一括制御用に保持
         self.handle = handle
-        self.addr_dir_base = addr_dir
-        self.dir_struct = DirStruct(self.handle, addr_dir) if addr_dir is not None else None
+        self.addr_menu_state_base = addr_menu_state
+        self.menu_struct = MenuStruct(self.handle, addr_menu_state) if addr_menu_state is not None else None
         self.capturing = False
         self.minimap_window = None  # 切り替え先ウィンドウ用
+
+        # --- thread control ---
+        self._stop_event = threading.Event()
+        # Tk変数は監視スレッドから触らないためのキャッシュ
+        self._auto_capture_flag = False
 
         # --- 解像度プロファイル読み込み（差し替え）---
         self.update_resolution_profile()
@@ -1191,7 +1266,7 @@ class MapApp:
 
 
         # 🔽 既存シナリオ一覧を取得
-        scenario_base = os.path.join(get_base_path(), "map_images")
+        scenario_base = PATHS.scenario_root()
         try:
             os.makedirs(scenario_base, exist_ok=True)
         except Exception as e:
@@ -1201,8 +1276,11 @@ class MapApp:
             scenario_list = [name for name in os.listdir(scenario_base)
                             if os.path.isdir(os.path.join(scenario_base, name))]
 
+        # 💾 settings.json 読み込み（UI復元・前回シナリオなど）
+        self._app_settings = load_app_settings()
+
         # 📂 最後に選択されていたシナリオ名を取得（なければ最初の1件）
-        last_selected = load_last_selected_scenario()
+        last_selected = (str(self._app_settings.get("last_scenario", "")).strip() or None)
         self.selected_scenario = last_selected if last_selected in scenario_list else (scenario_list[0] if scenario_list else "")
 
         # --- フロア画像とキャッシュの初期化 ---
@@ -1362,13 +1440,172 @@ class MapApp:
         # --- 定期更新処理を開始 ---
         self.tick_map_overlay()
 
+        # ===============================
+        # 💾 UI設定の復元 & 自動保存（settings.json）
+        # ===============================
+        # 既存UI状態を復元（settings.json）
+        try:
+            self.auto_capture_enabled.set(bool(self._app_settings.get("auto_capture_enabled", self.auto_capture_enabled.get())))
+            self.topmost_var.set(bool(self._app_settings.get("topmost", self.topmost_var.get())))
+            self.minimap_var.set(bool(self._app_settings.get("minimap", self.minimap_var.get())))
+            self.marker_offset_x_cells.set(float(self._app_settings.get("marker_offset_x_cells", self.marker_offset_x_cells.get())))
+            self.marker_offset_y_cells.set(float(self._app_settings.get("marker_offset_y_cells", self.marker_offset_y_cells.get())))
+        except Exception as e:
+            print(f"📛 UI設定復元失敗: {e}")
+
+        # --- auto_capture flag cache (thread-safe) ---
+        try:
+            self._auto_capture_flag = bool(self.auto_capture_enabled.get())
+            def _sync_auto_capture_flag(*_):
+                self._auto_capture_flag = bool(self.auto_capture_enabled.get())
+            self.auto_capture_enabled.trace_add("write", _sync_auto_capture_flag)
+        except Exception as _e:
+            print(f"📛 auto_captureフラグ同期初期化失敗: {_e}")
+
+        # 最前面を反映（チェック状態に合わせる）
+        try:
+            self.toggle_topmost_window()
+        except Exception:
+            pass
+
+        # 変更時に自動保存（連打対策でデバウンス）
+        for v in (
+            self.auto_capture_enabled,
+            self.topmost_var,
+            self.minimap_var,
+            self.marker_offset_x_cells,
+            self.marker_offset_y_cells,
+        ):
+            try:
+                v.trace_add("write", lambda *_: self._schedule_save_settings())
+            except Exception:
+                pass
+
+    # --- settings.json 保存（デバウンス） ---
+    def _schedule_save_settings(self):
+        try:
+            if hasattr(self, "_save_job") and self._save_job is not None:
+                self.root.after_cancel(self._save_job)
+        except Exception:
+            pass
+        # 300ms まとめて保存
+        try:
+            self._save_job = self.root.after(300, self._flush_save_settings)
+        except Exception:
+            self._save_job = None
+
+    def _flush_save_settings(self):
+        try:
+            d = load_app_settings()
+            if not isinstance(d, dict):
+                d = {}
+            d.update({
+                "lang": CURRENT_LANG,
+                "last_scenario": (self.selected_scenario or ""),
+                "auto_capture_enabled": bool(self.auto_capture_enabled.get()),
+                "topmost": bool(self.topmost_var.get()),
+                "minimap": bool(self.minimap_var.get()),
+                "marker_offset_x_cells": float(self.marker_offset_x_cells.get()),
+                "marker_offset_y_cells": float(self.marker_offset_y_cells.get()),
+            })
+            save_app_settings(d)
+        except Exception as e:
+            print(f"📛 UI設定保存失敗: {e}")
+
+
+    
+    # --- プロセスハンドル解放（リーク防止） ---
+    def _close_process_handle(self):
+        """Close the current process HANDLE safely (idempotent, thread-safe-ish).
+
+        - Prevents double-close by detaching self.handle before calling CloseHandle.
+        - Treats 0 / None / INVALID_HANDLE_VALUE as no-op.
+        - Swallows Win32 errors (closing an already-dead process is not fatal for this app).
+        """
+        # Lazily create a lock so multiple threads don't race CloseHandle.
+        try:
+            lock = getattr(self, "_handle_lock", None)
+            if lock is None:
+                import threading
+                lock = threading.Lock()
+                setattr(self, "_handle_lock", lock)
+        except Exception:
+            lock = None
+
+        def _is_valid_handle(h) -> bool:
+            try:
+                # ctypes handle types can be c_void_p / int-like
+                hv = int(h)
+            except Exception:
+                return False
+            if hv == 0:
+                return False
+            # INVALID_HANDLE_VALUE == (HANDLE)(-1)
+            if hv == -1 or hv == 0xFFFFFFFFFFFFFFFF:
+                return False
+            return True
+
+        def _close(h):
+            try:
+                import ctypes
+                k32 = ctypes.windll.kernel32
+                # Set signature once (safe even if repeated)
+                try:
+                    k32.CloseHandle.argtypes = [ctypes.c_void_p]
+                    k32.CloseHandle.restype = ctypes.c_bool
+                except Exception:
+                    pass
+                ok = k32.CloseHandle(ctypes.c_void_p(int(h)))
+                if not ok:
+                    # Don't raise—best effort. You can enable verbose logging if needed.
+                    pass
+            except Exception as e:
+                print(f"⚠️ CloseHandle failed (ignored): {e}")
+
+        if lock is None:
+            # Fallback: best-effort without lock
+            h = getattr(self, "handle", None)
+            if not _is_valid_handle(h):
+                self.handle = None
+                return
+            self.handle = None  # detach first to avoid double-close
+            _close(h)
+            return
+
+        with lock:
+            h = getattr(self, "handle", None)
+            if not _is_valid_handle(h):
+                self.handle = None
+                return
+            self.handle = None  # detach first to avoid double-close
+        # Close outside the lock (CloseHandle is fast, but keep lock held minimal)
+        _close(h)
+
+    # --- ウィンドウ終了処理（スレッド停止 + ハンドル解放） ---
+    def on_close(self):
+        try:
+            self._stop_event.set()
+        except Exception:
+            pass
+        try:
+            self._close_process_handle()
+        except Exception:
+            pass
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+
     def toggle_language(self):
         global CURRENT_LANG
         CURRENT_LANG = "ja" if CURRENT_LANG == "en" else "en"
-        save_lang() 
+        # 言語の永続化は settings.json（_flush_save_settings）に一本化
+        try:
+            self._schedule_save_settings()
+        except Exception:
+            pass
         self.btn_lang_toggle.config(text=f"🌐 : {CURRENT_LANG.upper()}")
         self.refresh_ui_language()
-    
 
     def refresh_ui_language(self):
         self.btn_capture.config(text=get_ui_lang("btn_capture"))
@@ -1434,7 +1671,7 @@ class MapApp:
             show_ui_warning("warning_input", "warn_invalid_chars", parent=self.root)
             return
 
-        scenario_base = os.path.join(get_base_path(), "map_images")
+        scenario_base = PATHS.scenario_root()
         new_path = os.path.join(scenario_base, name)
         if os.path.exists(new_path):
             show_ui_warning("warning_input", "warn_scenario_name_exists", parent=self.root, name=name)
@@ -1460,6 +1697,9 @@ class MapApp:
     def on_select_scenario(self, event=None):
         name = self.combo_scenario.get()
         self.selected_scenario = name
+        # 選択状態は settings.json（_flush_save_settings）で保存
+        self._schedule_save_settings()
+
         self.reload_map_image()
         self.update_window_title()
 
@@ -1483,7 +1723,7 @@ class MapApp:
    
     def set_window_icon(self):
         # PyInstaller対応：絶対パスに変換して確実に指定
-        icon_path = os.path.abspath(os.path.join(get_base_path(), "wiz_codex.ico"))
+        icon_path = os.path.abspath(PATHS.asset_path("wiz_codex.ico"))
 
         if os.path.exists(icon_path):
             try:
@@ -1539,7 +1779,7 @@ class MapApp:
             print(f"[⚠️] ファイル名が存在しない floor={floor}")
             return Image.new("RGB", (self.map_crop.width(), self.map_crop.height()))
 
-        full_path = os.path.join(get_base_path(), filename)
+        full_path = filename
         print(f"[📂] 読み込みパス: {full_path}")
 
         try:
@@ -1565,26 +1805,26 @@ class MapApp:
             self.canvas.tag_lower(self.canvas_img_id) # 座標表示用のオーバーレイ要素などを前面に表示
 
     # --- 説明 ---
-    # DIR構造体から現在の座標・向き・フロア情報を取得し、GUIに反映する
+    # menu_state候補から現在の座標・向き・フロア情報を取得し、GUIに反映する
     # 情報が取得できた場合は赤ポチ（三角）とテキストを更新し、一定間隔で再実行する
     def tick_map_overlay(self):
         """
-        DIR構造体から現在の位置情報を取得し、マップUIに反映する。
+        menu_state候補から現在の位置情報を取得し、マップUIに反映する。
         - 赤ポチ（三角）の位置と向き
         - X/Y座標と方向ラベル
         - 現在のフロア表示（floor変更時のみスイッチ実行）
         """
         try:
-            if not self.dir_struct:
+            if not self.menu_struct:
                 self.floor_label.config(text=get_ui_lang("floor_label_loading"))
                 self.canvas.after(100, self.tick_map_overlay)
                 return
 
             # --- 情報取得 ---
-            x = self.dir_struct.read_x()
-            y = self.dir_struct.read_y()
-            direction = self.dir_struct.read_dir()
-            floor = self.dir_struct.read_floor()
+            x = self.menu_struct.read_x()
+            y = self.menu_struct.read_y()
+            direction = self.menu_struct.read_dir()
+            floor = self.menu_struct.read_floor()
 
             # --- 赤ポチ描画 ---
             if x is not None and y is not None and direction is not None:
@@ -1647,7 +1887,7 @@ class MapApp:
 
         self.capturing = True
         try:
-            if not self.dir_struct:
+            if not self.menu_struct:
                 print("📛 DIRアドレス未設定：floorが読めないため、キャプチャ中止")
                 return
 
@@ -1656,7 +1896,7 @@ class MapApp:
                 print("📛 ゲームウィンドウが見つかりません")
                 return
 
-            floor = self.dir_struct.read_floor()
+            floor = self.menu_struct.read_floor()
             if floor is None:
                 print("📛 floorの読み取りに失敗したため、キャプチャ中止")
                 return
@@ -1724,28 +1964,34 @@ class MapApp:
 
     def _run_scan_thread(self):
         """
-        DIR構造体の自動検出処理（内包関数 run_dir_scan を使用）。
+        menu_state候補の自動検出処理（内包関数 run_menu_state_scan を使用）。
         結果を読み込んで GUI に反映する。
         """
         try:
+            # === 🧹 古いハンドルを閉じる（リーク防止）===
+            try:
+                self._close_process_handle()
+            except Exception:
+                pass
+
             # === 🆕 プロセス再取得（WIZ再起動時のゾンビハンドル対策）===
             self.handle = get_process_handle(WINDOW_TITLE)
             if not self.handle:
                 show_ui_error("error_title", "error_addr_load_failed", parent=self.root)
                 return
 
-            # --- 内包版スキャン関数を実行（.csv 出力まで完了） ---
-            run_dir_scan()
+            # --- 内包版スキャン関数を実行（settings.json へ保存） ---
+            run_menu_state_scan()
 
             # --- 出力されたアドレスを読み込み ---
-            addr_dir = load_auto_dir_address()
-            if addr_dir is None:
+            addr_menu_state = load_auto_menu_state_address()
+            if addr_menu_state is None:
                 show_ui_error("error_title", "error_addr_load_failed", parent=self.root)
                 return
 
-            # --- DIR構造体オブジェクト再構築（handle更新後の再注入）---
-            self.dir_struct = DirStruct(self.handle, addr_dir)
-            print(f"[✅] DIR構造体更新 → {hex(addr_dir)}")
+            # --- menu_state候補オブジェクト再構築（handle更新後の再注入）---
+            self.menu_struct = MenuStruct(self.handle, addr_menu_state)
+            print(f"[✅] menu_state_addr 更新 → {hex(addr_menu_state)}")
 
         except Exception as e:
             import traceback
@@ -1756,46 +2002,38 @@ class MapApp:
 
     def monitor_menu_state(self):
         last_val = None
-        while True:
+        while not self._stop_event.is_set():
             try:
-                # --- dir_structが未設定またはアドレス不正ならスキップ ---
-                if not self.dir_struct or self.dir_struct.addr_menu_state is None:
+                # --- menu_structが未設定またはアドレス不正ならスキップ ---
+                if not self.menu_struct or self.menu_struct.addr_menu_state is None:
                     time.sleep(0.6)
                     continue
 
-                # ✅ auto_capture_enabled を1回だけ取得
-                auto_enabled = self.auto_capture_enabled.get()
-                if not auto_enabled:
+                # ✅ Tk変数は監視スレッドから触らない（キャッシュ参照）
+                if not getattr(self, "_auto_capture_flag", False):
                     time.sleep(0.6)
                     continue
 
-                val = read_int(self.handle, self.dir_struct.addr_menu_state)
+                val = read_int(self.handle, self.menu_struct.addr_menu_state)
 
                 if val is None:
-                    print("📛 menu_state 読み取り失敗（val is None）")
+                    # 読めない状態が一時的に起きるのは許容
                     time.sleep(0.6)
                     continue
 
                 # 🔁 menu_state 変化検出条件（MAP表示に関して）
-                # - 読み取り失敗→復帰 (val=None→valid) も「変化」とみなしてキャプチャ許容
-                # - 将来的に menu_state を用いた他処理（UI表示等）を追加する場合は、
-                #   last_val の扱いを目的別に分離する設計を検討すべし。
-                if val in MAP_MENU_STATES and val != last_val and auto_enabled:
-                    print("🎯 MAP表示検出！キャプチャ条件一致")
-                    print(f"✅ 条件: val={val} ({hex(val)}), last_val={last_val} ({hex(last_val) if last_val is not None else 'None'}), auto={auto_enabled}")
-                    self.capture_map_screenshot()
-                # else:
-                #     print(f"❌ 条件不一致: val={val} ({hex(val)}), last_val={last_val} ({hex(last_val) if last_val is not None else 'None'}), auto={auto_enabled}")
+                if val in MAP_MENU_STATES and val != last_val:
+                    # ✅ UI処理は必ずメインスレッドへ投げる
+                    self.root.after(0, self.capture_map_screenshot)
 
-                last_val = val # ⛳ 処理共通の状態追跡として記録。用途が増えた場合の整理は後日でも可能
+                # ⛳ 状態追跡
+                last_val = val
 
             except Exception as e:
                 print(f"[monitor_menu_state エラー] {e}")
 
             time.sleep(0.6)
 
-    # --- 説明 ---
-    #WIZマップツールを最前面化する関数
     def toggle_topmost_window(self):
         self.root.attributes("-topmost", self.topmost_var.get())
 
@@ -1873,15 +2111,15 @@ class MapApp:
         プレイヤーが動いたらCrop範囲をずらす方式で、正確な追従を行う。
         """
         try:
-            full_path = os.path.join(get_base_path(), self.map_images[floor])
+            full_path = self.map_images[floor]
             img_full = Image.open(full_path).convert("RGBA")
         except Exception as e:
             print(f"[ミニマップ] 元画像読み込み失敗: {e}")
             return None
 
         # === プレイヤー座標取得 ===
-        x = self.dir_struct.read_x()
-        y = self.dir_struct.read_y()
+        x = self.menu_struct.read_x()
+        y = self.menu_struct.read_y()
         if x is None or y is None:
             return None
 
@@ -1930,17 +2168,17 @@ class MapApp:
 
 
     def update_mini_map(self):
-        if not self.dir_struct or not hasattr(self, "canvas_mini"):
-            print("❌ dir_struct または canvas_mini が未定義")
+        if not self.menu_struct or not hasattr(self, "canvas_mini"):
+            print("❌ menu_struct または canvas_mini が未定義")
             return
 
         if not self.canvas_mini.winfo_exists():
             print("[tick_mini_map] キャンバス破棄済み → 更新停止")
             return
 
-        x = self.dir_struct.read_x()
-        y = self.dir_struct.read_y()
-        dir = self.dir_struct.read_dir()
+        x = self.menu_struct.read_x()
+        y = self.menu_struct.read_y()
+        dir = self.menu_struct.read_dir()
         floor = self.current_floor
 
         if x is None or y is None or dir is None:
@@ -1996,96 +2234,9 @@ class MapApp:
 
 
 
-########敵HP調査関連#########
-
-# メモリ走査関連定義
-PAGE_READWRITE = 0x04 # ページ保護属性：PAGE_READWRITE（WinAPI定数）
-MEM_REGION_ALIGN = 0x1000  # メモリページ境界（通常4KB）
-
-class MEMORY_BASIC_INFORMATION(ctypes.Structure):
-    _fields_ = [
-        ("BaseAddress", ctypes.c_void_p),
-        ("AllocationBase", ctypes.c_void_p),
-        ("AllocationProtect", ctypes.c_ulong),
-        ("RegionSize", ctypes.c_size_t),
-        ("State", ctypes.c_ulong),
-        ("Protect", ctypes.c_ulong),
-        ("Type", ctypes.c_ulong),
-    ]
-
-# --- MEM_COMMIT | PAGE_READWRITE 領域の列挙 ---
-def get_valid_regions(pm):
-    """
-    対象プロセス内の MEM_COMMIT | PAGE_READWRITE 領域を列挙
-    戻り値: [(base_address, region_size), ...]
-    """
-    regions = []
-    address = 0x0
-    mem_info = MEMORY_BASIC_INFORMATION()
-    mbi_size = ctypes.sizeof(mem_info)
-
-    while address < 0x7FFFFFFFFFFF:
-        result = ctypes.windll.kernel32.VirtualQueryEx(
-            pm.process_handle,
-            ctypes.c_void_p(address),
-            ctypes.byref(mem_info),
-            mbi_size
-        )
-        if not result:
-            address += 0x1000  # MEM_REGION_ALIGN（ページ境界）にスキップ
-            continue
-
-        base_address = mem_info.BaseAddress
-        region_size = mem_info.RegionSize
-
-        if base_address and region_size > 0:
-            addr_val = int(base_address)
-
-            if mem_info.State == 0x1000 and mem_info.Protect == 0x04:  # MEM_COMMIT, PAGE_READWRITE
-                regions.append((addr_val, region_size))
-
-            address = addr_val + region_size
-        else:
-            address += 0x1000
-
-    return regions
 
 
-def scan_enemy_hp_addr(memdump: dict):
-    """
-    サンドイッチスキャン：
-    味方の現在HP + 最大HP の一致に基づいて敵HP構造体を検出する。
-    memdump: {addr: bytes} 構造体ベースアドレス → 構造体bytes（最低0x198バイト必要）
-    """
-    ally_cur_hp_list = [23, 0, 10, 89, 0, 56]
-    ally_max_hp_list = [45, 10, 100, 89, 30, 56]
 
-    matched_addrs = []
-
-    for base, blob in memdump.items():
-        if len(blob) < 0x198:
-            continue  # 十分なサイズでないblobは除外
-
-        try:
-            cur_hp = [int.from_bytes(blob[0x000 + i*4 : 0x000 + (i+1)*4], 'little') for i in range(6)]
-            max_hp = [int.from_bytes(blob[0x180 + i*4 : 0x180 + (i+1)*4], 'little') for i in range(6)]
-
-            if cur_hp == ally_cur_hp_list and max_hp == ally_max_hp_list:
-                enemy_hp = int.from_bytes(blob[0x030:0x034], 'little')
-                print(f"[HIT] addr={hex(base)}  enemy_hp={enemy_hp}")
-                matched_addrs.append(base)
-
-        except Exception as e:
-            print(f"[WARN] blob parse error at {hex(base)}: {e}")
-            continue
-
-    print("=== サンドイッチスキャン完了 ===")
-    return matched_addrs
-
-
-########敵HP調査関連#########
-
-# --- メイン実行部（GUI起動の軸） ---
 if __name__ == "__main__":
     try:
         # ゲームのプロセスハンドルを取得
@@ -2096,32 +2247,33 @@ if __name__ == "__main__":
         # ウィンドウアイコン設定
         # ウィンドウアイコン設定（存在しない・壊れている場合も起動は続ける）
         try:
-            icon_path = os.path.join(get_base_path(), "wiz_codex.ico")
+            icon_path = PATHS.asset_path("wiz_codex.ico")
             root.iconbitmap(icon_path)
         except Exception as e:
             print(f"⚠️ アイコンの読み込みに失敗しました: {e}")
 
-        # DIRアドレスのCSV読み込み（失敗しても続行）
+        # menu_state_addr の読み込み（settings.json。失敗しても続行）
         try:
-            addr_dir = load_auto_dir_address()
+            addr_menu_state = load_auto_menu_state_address()
         except Exception:
-            addr_dir = None
+            addr_menu_state = None
 
         # ウィンドウ表示＆アプリ初期化
         root.deiconify()
         root.title(get_ui_lang("window_title"))
 
-        app = MapApp(root, handle, addr_dir)
+        app = MapApp(root, handle, addr_menu_state)
 
         # 🔄 自動キャプチャ監視スレッドの起動
         
+        # ウィンドウクローズ時の後始末
+        root.protocol("WM_DELETE_WINDOW", app.on_close)
+
         threading.Thread(target=app.monitor_menu_state, daemon=True).start()
 
         root.mainloop()
 
     except Exception as e:
         print(f"エラー: {e}")
-
-
 
 
