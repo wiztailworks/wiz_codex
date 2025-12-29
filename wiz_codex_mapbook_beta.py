@@ -101,8 +101,13 @@ def run_dir_scan():
         """
 
         try:
-            # 🔧 実行フォルダ（os.getcwd()）から読み取るように修正
-            path = os.path.join(os.getcwd(), filename)
+            # ✅ data領域（exe本体の隣）から読む（書き込み先と統一）
+            _paths = globals().get("PATHS", None)
+            if _paths is not None and hasattr(_paths, "data_path"):
+                path = _paths.data_path(filename)
+            else:
+                # フォールバック（念のため）
+                path = os.path.join(os.getcwd(), filename)
 
             with open(path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
@@ -303,7 +308,7 @@ def run_dir_scan():
 
             try:
                 # ✅ グローバル関数を使ってEXEルートに保存
-                path = os.path.join(get_base_path_for_data(), "locked_dir_val_addr.csv")
+                path = PATHS.data_path("locked_dir_val_addr.csv")
 
                 with open(path, "w", encoding="utf-8") as f:
                     f.write("menu_state_addr,dir_val_addr,menu_tail_hex\n")
@@ -467,68 +472,101 @@ def get_base_path_for_data():
 
 
 
+
+# === パス解決（assets / data を一本化） ===
+class PathResolver:
+    """
+    assets: 実行時に同梱される読み取り専用リソース（PyInstallerでは sys._MEIPASS）
+    data  : 設定・生成物など書き込み対象（exe本体の隣）
+    """
+    def __init__(self):
+        self.assets_root = get_base_path()
+        self.data_root = get_base_path_for_data()
+
+    # --- data ---
+    def data_path(self, *parts: str) -> str:
+        return os.path.join(self.data_root, *parts)
+
+    def settings_file(self) -> str:
+        return self.data_path("settings.json")
+
+    def scenario_root(self) -> str:
+        return self.data_path("map_images")
+
+    def scenario_dir(self, scenario_name: str) -> str:
+        return self.data_path("map_images", scenario_name)
+
+    # --- assets ---
+    def asset_path(self, *parts: str) -> str:
+        return os.path.join(self.assets_root, *parts)
+
+PATHS = PathResolver()
+
 # === 設定ファイルパス ===
 # settings.json に集約（lang.txt / last_scenario.txt は廃止）
-APP_SETTINGS_FILE = os.path.join(get_base_path_for_data(), "settings.json")
+APP_SETTINGS_FILE = PATHS.settings_file()
+
+class SettingsStore:
+    """Small JSON settings store safe for EXE builds.
+    - Stores settings next to the executable (get_base_path_for_data()).
+    - Never raises on read/write failures (prints a short error instead).
+    """
+    def __init__(self, path: str):
+        self.path = path
+
+    def load(self) -> dict:
+        try:
+            if not os.path.exists(self.path):
+                return {}
+            with open(self.path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, dict) else {}
+        except Exception as e:
+            print(f"📛 settings.json 読み込み失敗: {e}")
+            return {}
+
+    def save(self, d: dict) -> None:
+        try:
+            with open(self.path, "w", encoding="utf-8") as f:
+                json.dump(d, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"📛 settings.json 保存失敗: {e}")
+
+    def update(self, **kwargs) -> dict:
+        d = self.load()
+        d.update(kwargs)
+        self.save(d)
+        return d
+
+# Backwards-compatible wrappers (keep existing call sites simple)
+_SETTINGS = SettingsStore(APP_SETTINGS_FILE)
 
 def load_app_settings():
-    """
-    追加設定（UI状態など）を JSON から読み取る。
-    壊れていても落ちないように握りつぶす。
-    """
-    try:
-        if not os.path.exists(APP_SETTINGS_FILE):
-            return {}
-        with open(APP_SETTINGS_FILE, "r", encoding="utf-8") as f:
-            d = json.load(f)
-            return d if isinstance(d, dict) else {}
-    except Exception as e:
-        print(f"📛 settings.json 読み込み失敗: {e}")
-        return {}
+    return _SETTINGS.load()
 
 def save_app_settings(d: dict):
-    """
-    追加設定（UI状態など）を JSON に保存する。
-    """
-    try:
-        with open(APP_SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"📛 settings.json 保存失敗: {e}")
+    _SETTINGS.save(d)
 
 
 
 
 
-# --- 説明 ---
-# 前回選択されたシナリオ名をファイルから読み取る（存在しなければ None を返す）
-def load_last_selected_scenario():
-    """前回選択シナリオを settings.json から読む（無ければ None）。"""
-    s = load_app_settings()
-    if isinstance(s, dict):
-        name = str(s.get("last_scenario", "")).strip()
-        return name or None
-    return None
-
-# --- 説明 ---
-# 現在選択されているシナリオ名を外部ファイルに保存する（次回起動時に再現できるように）
-def save_last_selected_scenario(name):
-    name = (name or "").strip()
-
-    # settings.json
-    s = load_app_settings()
-    s["last_scenario"] = name
-    save_app_settings(s)
+# (removed) legacy scenario txt helpers; settings are managed via settings.json only.
 
 
 # --- 説明 ---
 # 現在選択されているシナリオ名に応じたマップ画像保存先のパスを返す。
 # 保存先フォルダが存在しない場合は自動作成する。
 def get_scenario_save_path(scenario_name):
-    base = os.path.join(get_base_path_for_data(), "map_images") 
+    """
+    map画像の保存先（書き込み領域）。
+    - ルート: <data>/map_images
+    - シナリオ指定時: <data>/map_images/<scenario_name>
+    """
+    base = PATHS.scenario_root()
 
     try:
-        os.makedirs(base, exist_ok=True)  # ✅ map_images フォルダ保証
+        os.makedirs(base, exist_ok=True)
     except Exception as e:
         print(f"📛 map_images フォルダ作成失敗: {e}")
         return None
@@ -536,14 +574,15 @@ def get_scenario_save_path(scenario_name):
     if not scenario_name:
         return base
 
-    folder = os.path.join(base, scenario_name)
+    folder = PATHS.scenario_dir(scenario_name)
     try:
-        os.makedirs(folder, exist_ok=True)  # ✅ シナリオ個別フォルダも保証
+        os.makedirs(folder, exist_ok=True)
     except Exception as e:
         print(f"📛 シナリオフォルダ作成失敗: {e}")
         return None
 
     return folder
+
 
 
 def prompt_select_resolution(parent_root): #定義のみで未使用
@@ -751,13 +790,6 @@ def save_lang():
     s["lang"] = CURRENT_LANG
     save_app_settings(s)
 
-def toggle_language(self):
-    global CURRENT_LANG
-    CURRENT_LANG = "ja" if CURRENT_LANG == "en" else "en"
-    save_lang()
-    self.btn_lang_toggle.config(text=f"🌐 : {CURRENT_LANG.upper()}")
-    self.refresh_ui_language()
-
 
 
 
@@ -944,7 +976,7 @@ def load_auto_dir_address():
     import os, csv
 
     try:
-        path = os.path.join(get_base_path_for_data(), "locked_dir_val_addr.csv")
+        path = PATHS.data_path("locked_dir_val_addr.csv")
         if not os.path.exists(path):
             return None  # ファイルが存在しない場合は None を返す（初回起動想定）
 
@@ -1213,7 +1245,7 @@ class MapApp:
 
 
         # 🔽 既存シナリオ一覧を取得
-        scenario_base = os.path.join(get_base_path(), "map_images")
+        scenario_base = PATHS.scenario_root()
         try:
             os.makedirs(scenario_base, exist_ok=True)
         except Exception as e:
@@ -1223,8 +1255,11 @@ class MapApp:
             scenario_list = [name for name in os.listdir(scenario_base)
                             if os.path.isdir(os.path.join(scenario_base, name))]
 
+        # 💾 settings.json 読み込み（UI復元・前回シナリオなど）
+        self._app_settings = load_app_settings()
+
         # 📂 最後に選択されていたシナリオ名を取得（なければ最初の1件）
-        last_selected = load_last_selected_scenario()
+        last_selected = (str(self._app_settings.get("last_scenario", "")).strip() or None)
         self.selected_scenario = last_selected if last_selected in scenario_list else (scenario_list[0] if scenario_list else "")
 
         # --- フロア画像とキャッシュの初期化 ---
@@ -1387,9 +1422,7 @@ class MapApp:
         # ===============================
         # 💾 UI設定の復元 & 自動保存（settings.json）
         # ===============================
-        self._app_settings = load_app_settings()
-
-        # 既存UI状態を復元
+        # 既存UI状態を復元（settings.json）
         try:
             self.auto_capture_enabled.set(bool(self._app_settings.get("auto_capture_enabled", self.auto_capture_enabled.get())))
             self.topmost_var.set(bool(self._app_settings.get("topmost", self.topmost_var.get())))
@@ -1522,7 +1555,7 @@ class MapApp:
             show_ui_warning("warning_input", "warn_invalid_chars", parent=self.root)
             return
 
-        scenario_base = os.path.join(get_base_path(), "map_images")
+        scenario_base = PATHS.scenario_root()
         new_path = os.path.join(scenario_base, name)
         if os.path.exists(new_path):
             show_ui_warning("warning_input", "warn_scenario_name_exists", parent=self.root, name=name)
@@ -1550,7 +1583,9 @@ class MapApp:
         self.selected_scenario = name
         # 選択状態を永続化（settings.json）
         try:
-            save_last_selected_scenario(name)
+            s = load_app_settings();
+            s["last_scenario"] = name
+            save_app_settings(s)
         except Exception:
             pass
         self.reload_map_image()
@@ -1576,7 +1611,7 @@ class MapApp:
    
     def set_window_icon(self):
         # PyInstaller対応：絶対パスに変換して確実に指定
-        icon_path = os.path.abspath(os.path.join(get_base_path(), "wiz_codex.ico"))
+        icon_path = os.path.abspath(PATHS.asset_path("wiz_codex.ico"))
 
         if os.path.exists(icon_path):
             try:
@@ -1632,7 +1667,7 @@ class MapApp:
             print(f"[⚠️] ファイル名が存在しない floor={floor}")
             return Image.new("RGB", (self.map_crop.width(), self.map_crop.height()))
 
-        full_path = os.path.join(get_base_path(), filename)
+        full_path = filename
         print(f"[📂] 読み込みパス: {full_path}")
 
         try:
@@ -1966,7 +2001,7 @@ class MapApp:
         プレイヤーが動いたらCrop範囲をずらす方式で、正確な追従を行う。
         """
         try:
-            full_path = os.path.join(get_base_path(), self.map_images[floor])
+            full_path = self.map_images[floor]
             img_full = Image.open(full_path).convert("RGBA")
         except Exception as e:
             print(f"[ミニマップ] 元画像読み込み失敗: {e}")
@@ -2189,7 +2224,7 @@ if __name__ == "__main__":
         # ウィンドウアイコン設定
         # ウィンドウアイコン設定（存在しない・壊れている場合も起動は続ける）
         try:
-            icon_path = os.path.join(get_base_path(), "wiz_codex.ico")
+            icon_path = PATHS.asset_path("wiz_codex.ico")
             root.iconbitmap(icon_path)
         except Exception as e:
             print(f"⚠️ アイコンの読み込みに失敗しました: {e}")
