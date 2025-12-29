@@ -1301,6 +1301,26 @@ class MapApp:
         )
         self.chk_topmost.pack(anchor="w", pady=2)
 
+        # --- 追加：赤点オフセット（セル単位） ---
+        self.marker_offset_x_cells = tk.DoubleVar(value=0.0)
+        self.marker_offset_y_cells = tk.DoubleVar(value=0.0)
+
+        row_offset = tk.Frame(frame_ops)
+        row_offset.pack(anchor="w", pady=(6, 2))
+
+        tk.Label(row_offset, text="🎯 Marker Offset (cells):").pack(side=tk.LEFT)
+
+        tk.Label(row_offset, text="X").pack(side=tk.LEFT, padx=(6, 2))
+        tk.Spinbox(row_offset, from_=-50.0, to=50.0, increment=0.1, format="%.2f",
+                width=6, textvariable=self.marker_offset_x_cells).pack(side=tk.LEFT)
+        
+        tk.Spinbox(row_offset, from_=-50.0, to=50.0, increment=0.1, format="%.2f",
+                width=6, textvariable=self.marker_offset_y_cells).pack(side=tk.LEFT)
+
+        tk.Button(row_offset, text="Reset", width=6,
+                command=lambda: (self.marker_offset_x_cells.set(0), self.marker_offset_y_cells.set(0))
+                ).pack(side=tk.LEFT, padx=(8, 0))
+
 
         # ミニマップ表示トグル
         self.minimap_var = tk.BooleanVar(value=False)
@@ -1572,8 +1592,14 @@ class MapApp:
                 cell_height = self.profile.cell_size
                 map_left = self.profile.map_origin_x - self.map_crop.left
                 map_bottom = self.profile.map_origin_y - self.map_crop.top
-                cx = map_left + x * cell_width
-                cy = map_bottom - y * cell_height
+
+                # ✅ 追加：セル単位オフセット（+X=右 / +Y=下）
+                ox = self.marker_offset_x_cells.get()
+                oy = self.marker_offset_y_cells.get()
+
+                cx = map_left + (x * cell_width) + (ox * cell_width)
+                cy = map_bottom - (y * cell_height) + (oy * cell_height)
+
                 size = self.profile.marker_size
 
                 if direction == 0:
