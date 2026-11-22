@@ -1,8 +1,13 @@
 # Wiz Codex
 
-Wiz Codex is an unofficial, read-only Windows companion for *Wizardry: The Five Ordeals* on Steam. Keep it beside the game to see where you are, check your party, or look up a monster or an item.
+A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windows).
 
-[日本語](#日本語) · [Downloads](https://github.com/wiztailworks/wiz_codex/releases/latest) · [🪶 Character Creator](creator.md)
+Steam版『Wizardry外伝 五つの試練』の冒険をちょっと便利にする、Windows用の非公式ツールです。
+
+- 🧭 **Wiz Codex** · Map, enemy HP & reference / 地図・敵HP・図鑑 · [Windows ZIP](https://github.com/wiztailworks/wiz_codex/releases/download/v2.0.0/WizCodex-Windows-x64.zip) · [Release](https://github.com/wiztailworks/wiz_codex/releases/tag/v2.0.0)
+- 🪶 **Character Creator** · Character creation & BP rerolls / キャラ作成・BP厳選 · [Windows ZIP](https://github.com/wiztailworks/wiz_codex/releases/download/creator-v1.0.0/WizCodex-Character-Creator-Windows-x64.zip) · [Guide / 使い方](creator.md)
+
+[日本語のセットアップ](#日本語)
 
 ## Quick start
 
@@ -13,6 +18,8 @@ Wiz Codex is an unofficial, read-only Windows companion for *Wizardry: The Five 
 Requires Windows x64, Microsoft Edge WebView2 Runtime, and .NET Framework 4.6.2 or later. Python is included. The installer is unsigned. The release includes `SHA256SUMS.txt` for verifying the ZIP.
 
 ## What you can see
+
+Keep Wiz Codex beside the game. It shows what’s happening as you play and leaves your save untouched.
 
 - **Map.** Check your floor, coordinates, and facing. Browse another floor, then choose **Follow** to bring the map back to your party.
 - **Battle.** Check which enemies are present. Turn on **Enemies** under **Settings → Book of Wisdom** to see each enemy's remaining HP when available.

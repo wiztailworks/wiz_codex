@@ -1,8 +1,10 @@
 # 🪶 Wiz Codex Character Creator
 
-A Windows companion for creating characters in the Training Grounds in *Wizardry: The Five Ordeals* on Steam.
+Create characters and reroll bonus points (BP) in the Training Grounds in *Wizardry: The Five Ordeals* (Steam / Windows).
 
-[Download / ダウンロード](https://github.com/wiztailworks/wiz_codex/releases/tag/creator-v1.0.0)
+Steam版『Wizardry外伝 五つの試練』の訓練場でキャラ作成とBP厳選ができるWindows用ツールです。
+
+[Windows ZIP / ダウンロード](https://github.com/wiztailworks/wiz_codex/releases/download/creator-v1.0.0/WizCodex-Character-Creator-Windows-x64.zip) · [Release / SHA-256](https://github.com/wiztailworks/wiz_codex/releases/tag/creator-v1.0.0) · [Wiz Codex](readme.md) · [日本語](#日本語)
 
 <img src="screenshot_creator.jpg" width="260" alt="Character Creator / キャラクター作成画面">
 
@@ -16,7 +18,7 @@ A Windows companion for creating characters in the Training Grounds in *Wizardry
 
 To update an existing installation, close Creator and select its current folder in Setup.
 
-The roll limit can be reached before your BP target comes up. You can stop a run from Creator.
+**Will I always get the BP I want?** Nope. If the minimum BP doesn't come up, Creator stops at the roll limit. You can also stop it yourself.
 
 ## 日本語
 
@@ -30,4 +32,4 @@ Steam版『Wizardry外伝 五つの試練』の訓練場で、BPの抽選・能�
 
 更新する場合はCreatorを閉じ、セットアップで現在の導入先を選びます。
 
-抽選上限までに希望のBPが出ないこともあります。作成はCreatorの「停止」で止められます。
+**設定した最低BPは必ず出る？** 出ないこともあります。上限回数までに出なければ自動で止まります。Creatorの「停止」でも止められます。
