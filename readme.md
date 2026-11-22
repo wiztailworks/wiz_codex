@@ -2,7 +2,7 @@
 
 Wiz Codex is an unofficial, read-only Windows companion for *Wizardry: The Five Ordeals* on Steam. Keep it beside the game to see where you are, check your party, or look up a monster or an item.
 
-[日本語](#日本語) · [Downloads](https://github.com/wiztailworks/wiz_codex/releases/latest)
+[日本語](#日本語) · [Downloads](https://github.com/wiztailworks/wiz_codex/releases/latest) · [🪶 Character Creator](creator.md)
 
 ## Quick start
 
