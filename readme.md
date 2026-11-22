@@ -2,20 +2,9 @@
 
 A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windows).
 
-Steam版『Wizardry外伝 五つの試練』の冒険をちょっと便利にする、Windows用の非公式ツールです。
+> Steam版『Wizardry外伝 五つの試練』の冒険をちょっと便利にする、Windows用の非公式ツールです。
 
-- 🧭 **Wiz Codex** · Map, enemy HP & reference / 地図・敵HP・図鑑 · [Windows ZIP](https://github.com/wiztailworks/wiz_codex/releases/download/v2.0.0/WizCodex-Windows-x64.zip) · [Release](https://github.com/wiztailworks/wiz_codex/releases/tag/v2.0.0)
-- 🪶 **Character Creator** · Character creation & BP rerolls / キャラ作成・BP厳選 · [Windows ZIP](https://github.com/wiztailworks/wiz_codex/releases/download/creator-v1.0.0/WizCodex-Character-Creator-Windows-x64.zip) · [Guide / 使い方](creator.md)
-
-[日本語のセットアップ](#日本語)
-
-## Quick start
-
-1. Download the **Wiz Codex Windows x64 ZIP** from [Releases](https://github.com/wiztailworks/wiz_codex/releases/latest) and extract all files. Keep the `product` and `runtime` folders next to **Wiz Codex Setup.exe**.
-2. Run **Wiz Codex Setup.exe** and choose the suggested location or an empty folder. To update Wiz Codex, close it first and select its existing installation folder. Click **Install**.
-3. After installation, choose **Open folder** and run **WizCodex.exe**. Load a save in the Steam game and wait for Wiz Codex to connect.
-
-Requires Windows x64, Microsoft Edge WebView2 Runtime, and .NET Framework 4.6.2 or later. Python is included. The installer is unsigned. The release includes `SHA256SUMS.txt` for verifying the ZIP.
+[↓ Downloads](#downloads)
 
 ## What you can see
 
@@ -54,6 +43,21 @@ The 🌐 menu switches between English and Japanese. Reference entries use their
 - A dash (—) marks a value that is temporarily unavailable. For example, party HP can show a dash while you decide how to respond to a friendly encounter.
 - Wiz Codex retrieves game information locally. It sends no game input and makes no changes to game memory or save files.
 - See [Legacy tools](docs/LEGACY.md) for Mapbook and Lifebook.
+
+## Downloads
+
+- 🧭 [**Wiz Codex — Windows ZIP**](https://github.com/wiztailworks/wiz_codex/releases/download/v2.0.0/WizCodex-Windows-x64.zip)
+- 🪶 [**Character Creator — Windows ZIP**](https://github.com/wiztailworks/wiz_codex/releases/download/creator-v1.0.0/WizCodex-Character-Creator-Windows-x64.zip)
+
+[Wiz Codex quick start](#quick-start) · [Creator guide](creator.md) · [日本語のセットアップ](#日本語)
+
+## Quick start
+
+1. Download the **Wiz Codex Windows x64 ZIP** from [Releases](https://github.com/wiztailworks/wiz_codex/releases/latest) and extract all files. Keep the `product` and `runtime` folders next to **Wiz Codex Setup.exe**.
+2. Run **Wiz Codex Setup.exe** and choose the suggested location or an empty folder. To update Wiz Codex, close it first and select its existing installation folder. Click **Install**.
+3. After installation, choose **Open folder** and run **WizCodex.exe**. Load a save in the Steam game and wait for Wiz Codex to connect.
+
+Requires Windows x64, Microsoft Edge WebView2 Runtime, and .NET Framework 4.6.2 or later. Python is included. The installer is unsigned. The release includes `SHA256SUMS.txt` for verifying the ZIP.
 
 ## 日本語
 
