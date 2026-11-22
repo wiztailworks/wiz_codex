@@ -1,21 +1,21 @@
-# Wiz Codex Read
+# Wiz Codex
 
-Wiz Codex Read is an unofficial, read-only Windows companion for *Wizardry: The Five Ordeals* on Steam. Keep it beside the game to see where you are, check your party, or look up a monster or an item.
+Wiz Codex is an unofficial, read-only Windows companion for *Wizardry: The Five Ordeals* on Steam. Keep it beside the game to see where you are, check your party, or look up a monster or an item.
 
-[日本語](#日本語) · [Downloads](https://github.com/wiztailworks/wiz_codex/releases)
+[日本語](#日本語) · [Downloads](https://github.com/wiztailworks/wiz_codex/releases/latest)
 
 ## Quick start
 
-1. Download the **Wiz Codex Read Windows x64 ZIP** from [Releases](https://github.com/wiztailworks/wiz_codex/releases) and extract all files. Keep the `product` and `runtime` folders next to **Wiz Codex Setup.exe**.
-2. Run **Wiz Codex Setup.exe** and choose the suggested location or an empty folder. To update Read, close it first and select its existing installation folder. Click **Install**.
-3. After installation, choose **Open folder** and run **WizCodex.exe**. Load a save in the Steam game and wait for Read to connect.
+1. Download the **Wiz Codex Windows x64 ZIP** from [Releases](https://github.com/wiztailworks/wiz_codex/releases/latest) and extract all files. Keep the `product` and `runtime` folders next to **Wiz Codex Setup.exe**.
+2. Run **Wiz Codex Setup.exe** and choose the suggested location or an empty folder. To update Wiz Codex, close it first and select its existing installation folder. Click **Install**.
+3. After installation, choose **Open folder** and run **WizCodex.exe**. Load a save in the Steam game and wait for Wiz Codex to connect.
 
-Requires Windows x64, Microsoft Edge WebView2 Runtime, and .NET Framework 4.6.2 or later. Python is included. This is an unsigned preview. The release includes `SHA256SUMS.txt` for verifying the ZIP.
+Requires Windows x64, Microsoft Edge WebView2 Runtime, and .NET Framework 4.6.2 or later. Python is included. The installer is unsigned. The release includes `SHA256SUMS.txt` for verifying the ZIP.
 
 ## What you can see
 
 - **Map.** Check your floor, coordinates, and facing. Browse another floor, then choose **Follow** to bring the map back to your party.
-- **Battle.** Check which enemies are present. In Read, turn on **Enemies** under **Settings → Book of Wisdom** to see each enemy's remaining HP when available.
+- **Battle.** Check which enemies are present. Turn on **Enemies** under **Settings → Book of Wisdom** to see each enemy's remaining HP when available.
 - **Party and inventory.** Check your party's HP, status, and available spell charges. Choose **Show inventory** to see each member's items. ◆ marks equipped items.
 - **Reference.** Look up enemy stats and encounter locations, item damage and effects, and possible loot sources. If the reference lists a chest drop rate, it is the baseline chance per chest.
 
@@ -43,27 +43,27 @@ The 🌐 menu switches between English and Japanese. Reference entries use their
 
 ## Good to know
 
-- Read follows the scenario loaded in the game. Reference details can vary by scenario and may take a moment to update after a switch.
+- Wiz Codex follows the scenario loaded in the game. Reference details can vary by scenario and may take a moment to update after a switch.
 - A dash (—) marks a value that is temporarily unavailable. For example, party HP can show a dash while you decide how to respond to a friendly encounter.
-- Read retrieves game information locally. It sends no game input and makes no changes to game memory or save files.
+- Wiz Codex retrieves game information locally. It sends no game input and makes no changes to game memory or save files.
 - See [Legacy tools](docs/LEGACY.md) for Mapbook and Lifebook.
 
 ## 日本語
 
-**Wiz Codex Read** は、Steam版『Wizardry外伝 五つの試練』向けの非公式・読み取り専用ツールです。ゲームの横に開いておけば、探索中の現在地や仲間の状態を見ながら、敵やアイテムを調べられます。
+**Wiz Codex** は、Steam版『Wizardry外伝 五つの試練』向けの非公式・読み取り専用ツールです。ゲームの横に開いておけば、探索中の現在地や仲間の状態を見ながら、敵やアイテムを調べられます。
 
 ### 導入と起動
 
-1. [Releases](https://github.com/wiztailworks/wiz_codex/releases) から **Wiz Codex ReadのWindows x64版ZIP** をダウンロードし、すべて展開します。`product` と `runtime` は **Wiz Codex Setup.exe** と同じ場所に置きます。
-2. **Wiz Codex Setup.exe** を起動し、表示された導入先か空のフォルダを選びます。更新する場合は、Readを閉じてから、今使っている導入先を選んでください。「導入・更新」を押すとインストールが始まります。
-3. 導入が終わったら「フォルダを開く」から **WizCodex.exe** を起動します。Steam版のゲームでセーブデータを開き、Readが接続するまで待ちます。
+1. [Releases](https://github.com/wiztailworks/wiz_codex/releases/latest) から **Wiz CodexのWindows x64版ZIP** をダウンロードし、すべて展開します。`product` と `runtime` は **Wiz Codex Setup.exe** と同じ場所に置きます。
+2. **Wiz Codex Setup.exe** を起動し、表示された導入先か空のフォルダを選びます。更新する場合は、Wiz Codexを閉じてから、今使っている導入先を選んでください。「導入・更新」を押すとインストールが始まります。
+3. 導入が終わったら「フォルダを開く」から **WizCodex.exe** を起動します。Steam版のゲームでセーブデータを開き、Wiz Codexが接続するまで待ちます。
 
-動作にはWindows x64、Microsoft Edge WebView2 Runtime、.NET Framework 4.6.2以上が必要です。Pythonは同梱しています。未署名のプレビュー版です。ZIPの照合には、同時配布する `SHA256SUMS.txt` を使えます。
+動作にはWindows x64、Microsoft Edge WebView2 Runtime、.NET Framework 4.6.2以上が必要です。Pythonは同梱しています。インストーラーは未署名です。ZIPの照合には、同時配布する `SHA256SUMS.txt` を使えます。
 
 ### 見られる情報
 
 - **地図** ─ 現在の階・座標・向きが分かります。別の階を見たあと、「現在地へ」を押すと地図の表示がパーティーの現在地に戻ります。
-- **戦闘** ─ 出現した敵を確認できます。Readの「設定」→「叡智の書」で「敵」を有効にすると、敵1体ごとの残りHPを、取得できたときに表示します。
+- **戦闘** ─ 出現した敵を確認できます。「設定」→「叡智の書」で「敵」を有効にすると、敵1体ごとの残りHPを、取得できたときに表示します。
 - **仲間と持ち物** ─ HP、状態、取得できた呪文の残り回数を表示します。「持ち物を表示」で仲間ごとの所持品が開きます。◆は装備中の印です。
 - **図鑑** ─ 敵の能力や出現場所、アイテムのダメージや効果、入手候補を調べられます。宝箱からの入手確率が分かる品は、宝箱1個あたりの基準値を表示します。
 
