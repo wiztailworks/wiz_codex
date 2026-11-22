@@ -11,14 +11,12 @@ See the map, your party and enemy HP as you play. Look up enemy weaknesses and s
 > 地図や仲間、敵のHPをゲームの横で確認。敵の弱点や特殊攻撃、未鑑定品の名前、宝箱の中身の候補も見られます。
 
 <p>
-  <a href="./screenshot_main_ui.png"><img src="./screenshot_main_ui.png" width="144" alt="Dungeon map"></a>
-  <a href="./screenshot_battle.png"><img src="./screenshot_battle.png" width="144" alt="Enemy HP in battle"></a>
-  <a href="./screenshot_inventory.png"><img src="./screenshot_inventory.png" width="144" alt="Party and inventory"></a>
-  <a href="./screenshot_enemy_reference.png"><img src="./screenshot_enemy_reference.png" width="144" alt="Monster guide"></a>
-  <a href="./screenshot_item_reference.png"><img src="./screenshot_item_reference.png" width="144" alt="Item guide"></a>
+  <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="224" alt="Enemy HP and party inventory (composite)"></a>
+  <a href="./screenshot_enemy_reference.png"><img src="./screenshot_enemy_reference.png" width="224" alt="Monster guide"></a>
+  <a href="./screenshot_item_reference.png"><img src="./screenshot_item_reference.png" width="224" alt="Item guide"></a>
 </p>
 
-<sub>Click to enlarge · 画像を押すと拡大</sub>
+<sub>Click to enlarge · 画像を押すと拡大。戦闘と持ち物は2画面を合成。</sub>
 
 ## Downloads
 
