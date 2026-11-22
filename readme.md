@@ -6,17 +6,11 @@ A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windo
 
 [↓ Downloads](#downloads)
 
-See the map, your party and enemy HP as you play. Look up enemy weaknesses and special attacks, see the names of unidentified items, or see what might be in that chest.
-
-> 地図や仲間、敵のHPをゲームの横で確認。敵の弱点や特殊攻撃、未鑑定品の名前、宝箱の中身の候補も見られます。
-
 <p>
-  <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="224" alt="Enemy HP and party inventory (composite)"></a>
+  <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="224" alt="Enemy HP and party inventory"></a>
   <a href="./screenshot_enemy_reference.png"><img src="./screenshot_enemy_reference.png" width="224" alt="Monster guide"></a>
   <a href="./screenshot_item_reference.png"><img src="./screenshot_item_reference.png" width="224" alt="Item guide"></a>
 </p>
-
-<sub>Click to enlarge · 画像を押すと拡大。戦闘と持ち物は2画面を合成。</sub>
 
 ## Downloads
 
