@@ -6,9 +6,9 @@ A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windo
 
 [↓ Downloads](#downloads)
 
-How much HP does that monster have left? What did you just pick up? Keep Wiz Codex beside the game for a quick look.
+🧭 A small companion window for dungeon runs. Shows the map, enemy HP and inventory, with monster and item guides built in.
 
-> あの敵、あとどれくらいで倒せそう？ さっき拾ったのは何だろう？ 気になったら、ゲームの横のWiz Codexをちらっと。
+> 迷宮探索のお供に。地図や敵HP、持ち物をゲームの横に表示します。敵とアイテムの図鑑つき。
 
 <p>
   <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="276" alt="Enemy HP and party inventory"></a>
