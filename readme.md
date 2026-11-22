@@ -1,206 +1,83 @@
-# Wiz Codex: Lifebook
+# Wiz Codex Read
 
-❤️ Battle companion tool for *Wizardry: The Five Ordeals (Steam)*.  
-Enter party HP during combat to lock → enemy HP becomes visible.  
-Displays party HP with optional life bars, plus Always-on-Top mode.
+Wiz Codex Read is an unofficial, read-only Windows companion for *Wizardry: The Five Ordeals* on Steam. Keep it beside the game to see where you are, check your party, or look up a monster or an item.
 
----
+[日本語](#日本語) · [Downloads](https://github.com/wiztailworks/wiz_codex/releases)
 
-# Wiz Codex: Mapbook
+## Quick start
 
+1. Download the **Wiz Codex Read Windows x64 ZIP** from [Releases](https://github.com/wiztailworks/wiz_codex/releases) and extract all files. Keep the `product` and `runtime` folders next to **Wiz Codex Setup.exe**.
+2. Run **Wiz Codex Setup.exe** and choose the suggested location or an empty folder. To update Read, close it first and select its existing installation folder. Click **Install**.
+3. After installation, choose **Open folder** and run **WizCodex.exe**. Load a save in the Steam game and wait for Read to connect.
 
-🧭 A lightweight companion tool to automatically capture and organize dungeon maps  
-for *Wizardry: The Five Ordeals (Steam)* explorers.
+Requires Windows x64, Microsoft Edge WebView2 Runtime, and .NET Framework 4.6.2 or later. Python is included. This is an unsigned preview. The release includes `SHA256SUMS.txt` for verifying the ZIP.
 
----
+## What you can see
 
-## 💡 Features at a Glance
+- **Map.** Check your floor, coordinates, and facing. Browse another floor, then choose **Follow** to bring the map back to your party.
+- **Battle.** Check which enemies are present. In Read, turn on **Enemies** under **Settings → Book of Wisdom** to see each enemy's remaining HP when available.
+- **Party and inventory.** Check your party's HP, status, and available spell charges. Choose **Show inventory** to see each member's items. ◆ marks equipped items.
+- **Reference.** Look up enemy stats and encounter locations, item damage and effects, and possible loot sources. If the reference lists a chest drop rate, it is the baseline chance per chest.
 
-- Auto-captures the in-game map only when opened
-- Floating minimap overlay (always on top, draggable)
-- Scenario-based map folders
-- English/Japanese toggle (🌐)
-- Read-only memory scan (safe, non-intrusive)
-  
-![Wiz Codex: Mapbook UI](./screenshot_main_ui.png)
+The 🌐 menu switches between English and Japanese. Reference entries use their original names if an English name is unavailable.
 
-*Main UI showing position, direction, floor, and map capture options.*
+![Dungeon map with a red marker for the party](./screenshot_main_ui.png)
 
-![Wiz game screen with overlay](./screenshot_overlay.png)
+*The red arrow marks the party's position and facing. 赤い矢印はパーティーの現在地と向きを示します。*
 
-*Minimap overlaying the game screen (drag to move, always on top).*
+![Battle view with the remaining HP of two Bubbly Slimes](./screenshot_battle.png)
 
----
+*Remaining HP for each enemy. 敵1体ごとの残りHP。*
 
-## 🚀 Quick Start
+![Inventory for six party members](./screenshot_inventory.png)
 
-1. Launch *Wizardry: The Five Ordeals* (Steam)
-2. Start **Wiz Codex: Mapbook** *after* the game is running
-3. Perform a **rescan** inside a dungeon if the game was restarted
+*Inventory by party member. 仲間ごとの持ち物。*
 
-→ Full guide and FAQ below 👇
+![Bubbly Slime entry showing its HP range and armor class](./screenshot_enemy_reference.png)
 
----
+*Bubbly Slime's HP range and armor class (AC) in the reference. 敵図鑑のバブリースライム。HPの範囲とACを確認できます。*
 
-## Overview
+![Long Sword entry showing damage and equipment requirements](./screenshot_item_reference.png)
 
-If this map refuses to cooperate, even magic might not help.  
-A lightweight companion tool for explorers wandering the dungeons of *Wizardry: The Five Ordeals (Steam)*.
+*The Long Sword's damage and the classes that can equip it. アイテム図鑑の長剣。ダメージと装備できる職業を確認できます。*
 
-This tool automatically captures, organizes, and displays dungeon maps.  
-It supports scenario folders, a floating minimap overlay, and both English/Japanese UI.
+## Good to know
 
-## Quick Start
+- Read follows the scenario loaded in the game. Reference details can vary by scenario and may take a moment to update after a switch.
+- A dash (—) marks a value that is temporarily unavailable. For example, party HP can show a dash while you decide how to respond to a friendly encounter.
+- Read retrieves game information locally. It sends no game input and makes no changes to game memory or save files.
+- See [Legacy tools](docs/LEGACY.md) for Mapbook and Lifebook.
 
-1. **Launch Wizardry: The Five Ordeals (Steam).**
-2. **Start Wiz Codex: Mapbook *after* the game is running.**  
-   If the game is not running, this tool cannot connect and will not function properly.
-3. **Perform an address rescan** the first time, or whenever the game has been restarted.  
-   Make sure you are inside a dungeon (exploration mode) when doing this.
-   - You do *not* need to rescan after returning to the title screen or resetting in-game.
-   - A rescan is needed only after fully restarting the game application, as memory addresses change each time.
-4. When the scan succeeds, your **direction**, **X/Y coordinates**, and **floor** will be displayed.
-5. Select your current scenario from the dropdown menu.
-   - Use the ➕ button to create a new scenario folder.
-   - Click the 📂 button to open the folder where maps are saved.
-6. Enable **Auto Map Capture** to save a screenshot automatically  
-   when you open the in-game map screen (not during normal gameplay).
-7. To display the minimap, enable the **Minimap** checkbox.  
-   The minimap window stays always on top and can be freely dragged.
-8. Click the 🌐 button to switch between English and Japanese.
-9. To exit, simply close the window.
+## 日本語
 
-> **Note:**
-> - Administrator rights may be required. If you see access errors, try running as administrator.
-> - Windows only. Not compatible with other operating systems.
-> - Game updates may affect compatibility; continued support is not guaranteed.
-> - This tool is read-only. It does *not* modify game data or interfere with gameplay.
-> - PyAutoGUI is used for automation and screenshots. Some antivirus software may flag this.
-> - Use at your own risk.
+**Wiz Codex Read** は、Steam版『Wizardry外伝 五つの試練』向けの非公式・読み取り専用ツールです。ゲームの横に開いておけば、探索中の現在地や仲間の状態を見ながら、敵やアイテムを調べられます。
 
-## Features
+### 導入と起動
 
-- Multiple scenario folders (map images are organized per scenario)
-- Floating minimap overlay (always on top, draggable)
-- Address rescan:
-  - Fast mode using known tail-hex patterns from CSV
-  - Full scan fallback (10–30 sec) if needed
-  - Game input is locked during scanning to prevent changes
-- Auto map capture: triggered only when the in-game map is open
-- Manual map capture and scenario management
-- English/Japanese language toggle (🌐)
-- Theming available via code (for advanced users)
+1. [Releases](https://github.com/wiztailworks/wiz_codex/releases) から **Wiz Codex ReadのWindows x64版ZIP** をダウンロードし、すべて展開します。`product` と `runtime` は **Wiz Codex Setup.exe** と同じ場所に置きます。
+2. **Wiz Codex Setup.exe** を起動し、表示された導入先か空のフォルダを選びます。更新する場合は、Readを閉じてから、今使っている導入先を選んでください。「導入・更新」を押すとインストールが始まります。
+3. 導入が終わったら「フォルダを開く」から **WizCodex.exe** を起動します。Steam版のゲームでセーブデータを開き、Readが接続するまで待ちます。
 
-## FAQ
+動作にはWindows x64、Microsoft Edge WebView2 Runtime、.NET Framework 4.6.2以上が必要です。Pythonは同梱しています。未署名のプレビュー版です。ZIPの照合には、同時配布する `SHA256SUMS.txt` を使えます。
 
-- **Which game version is supported?**  
-  Verified with the Steam version. Compatibility with future updates is not guaranteed.
-- **Can I manage multiple scenarios?**  
-  Yes. Each scenario has its own folder. Use the ➕ button to create new ones.
-- **Will there be updates or new features?**  
-  Maybe. No promises.
-- **What are the dependencies?**  
-  pymem
-  pyautogui
-  Pillow
-  pywin32
+### 見られる情報
 
-- **Is there an EXE version?**  
-  Yes, see the Releases section.
-- **Can I change the theme or icon?**  
-  Not officially supported. Advanced users may edit the code directly.
-- **What if it doesn’t work?**  
-  Make sure to scan addresses while inside a dungeon.  
-  If problems persist, restart the tool and try again.
-- **Open Source / PRs?**  
-  MIT licensed. Suggestions and PRs are welcome, but may not be reviewed or merged.
+- **地図** ─ 現在の階・座標・向きが分かります。別の階を見たあと、「現在地へ」を押すと地図の表示がパーティーの現在地に戻ります。
+- **戦闘** ─ 出現した敵を確認できます。Readの「設定」→「叡智の書」で「敵」を有効にすると、敵1体ごとの残りHPを、取得できたときに表示します。
+- **仲間と持ち物** ─ HP、状態、取得できた呪文の残り回数を表示します。「持ち物を表示」で仲間ごとの所持品が開きます。◆は装備中の印です。
+- **図鑑** ─ 敵の能力や出現場所、アイテムのダメージや効果、入手候補を調べられます。宝箱からの入手確率が分かる品は、宝箱1個あたりの基準値を表示します。
 
-## License
+🌐 メニューで日本語と英語を切り替えられます。英名が用意されていない図鑑項目は元の名前で表示します。
 
-This tool is released under the [MIT License](LICENSE).  
-Feel free to explore, modify, and share—just like a true adventurer would.
+### 補足
 
----
+- ゲームで開いたシナリオに追従します。図鑑の内容はシナリオによって異なり、切り替え後の更新に時間がかかることがあります。
+- 「—」は一時的に値を取得できていない項目です。たとえば友好的な敵への対応を選んでいる間は、味方HPが「—」になることがあります。
+- ゲーム情報はPC内で読み取ります。ゲームの操作や、ゲームのメモリ・セーブデータへの書き込みは行いません。
+- 旧Mapbook・Lifebookの案内は [旧版ツール](docs/LEGACY.md) を参照してください。
 
-# 日本語版
+## License / ライセンス
 
-## 概要
+Wiz Codex is available under the [MIT License](LICENSE). Third-party notices are included in the ZIP.
 
-If this map refuses to cooperate, even magic might not help.  
-『Wizardry外伝 五つの試練』（Steam）探索中のダンジョンマップを、  
-自動でキャプチャ・整理・表示できる軽量ツールです。
-
-シナリオ別フォルダ、ミニマップオーバーレイ、日本語／英語UI切替に対応しています。
-
-## 使い方
-
-1. **まず『五つの試練』（Steam版）を起動してください。**
-2. **ゲーム起動後に本ツール（Wiz Codex: Mapbook）を起動します。**  
-   ゲームが起動していないと、正常に動作しません。
-3. **初回またはゲームを再起動したときは、**  
-   ダンジョン内（探索中）で「アドレス再スキャン」を行ってください。
-   - タイトル画面に戻っただけなら再スキャンは不要です。
-   - 完全にゲームを再起動した場合（Steamウィンドウから再起動など）は、  
-     メモリアドレスが変わるためスキャンが必要です。
-4. スキャンが成功すると、「向き」「X/Y座標」「フロア」が表示されます。
-5. コンボボックスでプレイ中のシナリオを選んでください。
-   - 「➕」で新規シナリオフォルダを作成できます。
-   - 「📂」を押すと、マップ画像の保存先フォルダが開きます。
-6. **「マップ自動保存」にチェックを入れると、**  
-   ゲーム内マップ画面を開いたときにだけ自動で画像が保存されます。
-7. ミニマップを表示したい場合は「ミニマップ」チェックをONにしてください。  
-   ウィンドウは常に最前面に表示され、自由に移動できます。
-8. 「🌐」ボタンでUIの言語を切り替えられます（日本語／英語）。
-9. 終了するには、ウィンドウを閉じるだけです。
-
-> **注意事項:**
-> - アクセスエラー時は「管理者として実行」してください。
-> - Windows専用です。他のOSでは動作しません。
-> - ゲームのアップデートにより動作しなくなる可能性があります。
-> - 本ツールは読み取り専用で、ゲームデータを変更したり干渉したりしません。
-> - スクリーンショットや一部自動化には PyAutoGUI を使用しています。  
->   一部のウイルス対策ソフトで警告が出ることがあります。
-> - ご利用は自己責任でお願いいたします。
-
-## 主な機能
-
-- シナリオ別フォルダによるマップ整理
-- ミニマップ表示（常に最前面・ドラッグ移動可能）
-- アドレス再スキャン機能
-  - 既知の末尾16進コード（CSV）による高速スキャン
-  - 見つからない場合はフルスキャン（10～30秒）
-  - スキャン中はアドレス変動防止のため入力を一時ロック
-- 自動マップ保存（マップ画面を開いた時のみ保存）
-- 手動保存、シナリオ管理対応
-- 日本語／英語切替ボタン（🌐）
-- テーマ変更はコード編集で可能（上級者向け）
-
-## よくある質問
-
-- **対応バージョンは？**  
-  Steam版で動作確認済み。将来的なアップデートで動作しなくなる可能性があります。
-- **複数シナリオの管理はできる？**  
-  可能です。シナリオごとに個別フォルダで保存されます。
-- **今後のアップデート予定は？**  
-  未定です。
-- **依存モジュールは？**  
-  pymem
-  pyautogui
-  Pillow
-  pywin32
-
-- **EXE版はある？**  
-  Releases ページで配布予定です。
-- **見た目やアイコンの変更は？**  
-  公式には対応していません。コード編集できる方は自由にどうぞ。
-- **うまく動かないときは？**  
-  必ず「ダンジョン内」で再スキャンしてください。  
-  それでも動作しない場合は、ツールを再起動してみてください。
-- **OSS／PRについて**  
-  MITライセンスです。意見・PR歓迎ですが、必ず対応できるとは限りません。
-
-## ライセンス
-
-このツールは [MITライセンス](LICENSE) に基づき公開されています。  
-自由に使って、改造して、冒険に役立ててください。
-
+Wiz Codexは [MITライセンス](LICENSE) です。同梱ライブラリのライセンスはZIP内の案内をご覧ください。
