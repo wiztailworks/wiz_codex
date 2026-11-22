@@ -6,9 +6,14 @@ A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windo
 
 [↓ Downloads](#downloads)
 
-🧭 A small companion window for dungeon runs. Shows the map, enemy HP and inventory, with monster and item guides built in.
+## 💡 Features at a Glance
 
-> 迷宮探索のお供に。地図や敵HP、持ち物をゲームの横に表示します。敵とアイテムの図鑑つき。
+- **Auto-connect** — Load a save and Wiz Codex starts showing your game info.
+- **Map & battle** — Keep the map, enemy HP, and inventory beside the game.
+- **Unidentified items** — Enable item names in Settings to see what you picked up.
+- **Monster & item guides** — Look up weaknesses, special attacks, item effects, and chest drops.
+
+> 迷宮探索のお供に。セーブを開けば自動でつながり、地図や敵HPをゲームの横に出しておけます。未鑑定品の名前は設定で表示。敵の弱点や宝箱のドロップは図鑑で。
 
 <p>
   <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="276" alt="Enemy HP and party inventory"></a>
