@@ -6,10 +6,14 @@ A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windo
 
 [↓ Downloads](#downloads)
 
+How much HP does that monster have left? What did you just pick up? Keep Wiz Codex beside the game for a quick look.
+
+> あの敵、あとどれくらいで倒せそう？ さっき拾ったのは何だろう？ 気になったら、ゲームの横のWiz Codexをちらっと。
+
 <p>
-  <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="224" alt="Enemy HP and party inventory"></a>
-  <a href="./screenshot_enemy_reference.png"><img src="./screenshot_enemy_reference.png" width="224" alt="Monster guide"></a>
-  <a href="./screenshot_item_reference.png"><img src="./screenshot_item_reference.png" width="224" alt="Item guide"></a>
+  <a href="./screenshot_battle_inventory.png"><img src="./screenshot_battle_inventory.png" width="276" alt="Enemy HP and party inventory"></a>
+  <a href="./screenshot_enemy_reference.png"><img src="./screenshot_enemy_reference.png" width="276" alt="Monster guide"></a>
+  <a href="./screenshot_item_reference.png"><img src="./screenshot_item_reference.png" width="276" alt="Item guide"></a>
 </p>
 
 ## Downloads
