@@ -23,7 +23,7 @@ A little help for your adventures in *Wizardry: The Five Ordeals* (Steam / Windo
 
 ## Downloads
 
-- 🧭 [**Wiz Codex — Windows ZIP**](https://github.com/wiztailworks/wiz_codex/releases/download/v2.0.0/WizCodex-Windows-x64.zip)
+- 🧭 [**Wiz Codex — Windows ZIP**](https://github.com/wiztailworks/wiz_codex/releases/download/v2.0.1/WizCodex-Windows-x64.zip)
 - 🪶 [**Character Creator — Windows ZIP**](https://github.com/wiztailworks/wiz_codex/releases/download/creator-v1.0.0/WizCodex-Character-Creator-Windows-x64.zip)
 
 [Wiz Codex quick start](#quick-start) · [Character creation & BP rerolls](creator.md) · [日本語のセットアップ](#日本語)
